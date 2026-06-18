@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Coleccionables</title>
+<title>Tienda PRO Coleccionables</title>
 
 <style>
 body{
@@ -15,9 +15,9 @@ body{
 /* BANNER */
 .banner{
   background:linear-gradient(90deg,#1e3a8a,#0ea5e9);
-  padding:25px;
+  padding:20px;
   text-align:center;
-  font-size:24px;
+  font-size:22px;
   font-weight:bold;
 }
 
@@ -51,7 +51,7 @@ body{
   display:block;
 }
 
-/* GRID PRODUCTOS */
+/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
@@ -72,9 +72,41 @@ body{
 
 button.add{
   margin-top:5px;
-  padding:5px;
-  cursor:pointer;
   width:100%;
+  padding:6px;
+  cursor:pointer;
+}
+
+/* CARRITO */
+.cart{
+  position:fixed;
+  right:0;
+  top:0;
+  width:280px;
+  height:100%;
+  background:#0b1220;
+  border-left:2px solid #1f2937;
+  padding:10px;
+  overflow:auto;
+}
+
+.cart h3{
+  margin-top:0;
+}
+
+.cart-item{
+  background:#1e293b;
+  padding:8px;
+  margin-bottom:8px;
+  border-radius:8px;
+}
+
+/* BADGE */
+.badge{
+  background:red;
+  padding:2px 6px;
+  border-radius:10px;
+  font-size:12px;
 }
 </style>
 </head>
@@ -82,7 +114,7 @@ button.add{
 <body>
 
 <div class="banner">
-  🧩 Tienda de Coleccionables PRO
+  🧩 Tienda PRO de Coleccionables
 </div>
 
 <div class="menu">
@@ -93,6 +125,7 @@ button.add{
   <button onclick="openTab('albumes')">Álbumes</button>
   <button onclick="openTab('estampillas')">Estampillas</button>
   <button onclick="openTab('accesorios')">Accesorios</button>
+  <button onclick="openTab('juegos')">🎮 Juegos</button>
 </div>
 
 <!-- POKÉMON -->
@@ -100,27 +133,44 @@ button.add{
 
   <h2>Pokémon</h2>
 
-  <button onclick="toggleSub('sellados')">📦 Sellados</button>
-  <button onclick="toggleSub('singles')">🃏 Cartas Singles</button>
+  <button onclick="toggle('sellados')">📦 Sellados</button>
+  <button onclick="toggle('singles')">🃏 Singles</button>
 
-  <!-- SELLADOS -->
-  <div id="sellados" class="subsection" style="display:none;">
+  <div id="sellados" style="display:none;">
     <h3>Sellados</h3>
-    <p>Aquí puedes poner booster boxes, ETB, packs, etc.</p>
+    <p>ETB, Booster Boxes, Packs, etc.</p>
   </div>
 
-  <!-- SINGLES -->
-  <div id="singles" class="subsection">
-
-    <h3>Cartas Singles (Catálogo)</h3>
-
+  <div id="singles">
+    <h3>Cartas Singles</h3>
     <div id="grid" class="grid"></div>
-
   </div>
 
 </div>
 
-<!-- OTRAS PESTAÑAS -->
+<!-- JUEGOS -->
+<div id="juegos" class="section">
+  <h2>🎮 Juegos</h2>
+  <div class="grid">
+
+    <div class="card">
+      <h3>Pokémon Scarlet</h3>
+      <p>Juego Nintendo Switch</p>
+      <input type="number" placeholder="Precio">
+      <button class="add" onclick="addManual('Pokémon Scarlet')">Agregar</button>
+    </div>
+
+    <div class="card">
+      <h3>Zelda TOTK</h3>
+      <p>Aventura Nintendo Switch</p>
+      <input type="number" placeholder="Precio">
+      <button class="add" onclick="addManual('Zelda TOTK')">Agregar</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- OTRAS -->
 <div id="jet" class="section"><h2>Jet</h2></div>
 <div id="monedas" class="section"><h2>Monedas</h2></div>
 <div id="billetes" class="section"><h2>Billetes</h2></div>
@@ -128,29 +178,72 @@ button.add{
 <div id="estampillas" class="section"><h2>Estampillas</h2></div>
 <div id="accesorios" class="section"><h2>Accesorios</h2></div>
 
+<!-- CARRITO -->
+<div class="cart">
+  <h3>🛒 Carrito <span class="badge" id="count">0</span></h3>
+  <div id="cartItems"></div>
+</div>
+
 <script>
 
-const API = "https://api.pokemontcg.io/v2/cards?pageSize=30";
-let cart = [];
+const API = "https://api.pokemontcg.io/v2/cards?pageSize=20";
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 function openTab(tab){
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.getElementById(tab).classList.add("active");
 }
 
-function toggleSub(id){
+function toggle(id){
   const el = document.getElementById(id);
   el.style.display = el.style.display === "none" ? "block" : "none";
 }
 
-/* CARGAR CARTAS */
+/* CARRITO */
+function updateCart(){
+  localStorage.setItem("cart", JSON.stringify(cart));
+
+  document.getElementById("count").innerText = cart.length;
+
+  const box = document.getElementById("cartItems");
+  box.innerHTML = "";
+
+  cart.forEach((item, i) => {
+    box.innerHTML += `
+      <div class="cart-item">
+        <b>${item.name}</b><br>
+        $${item.price}
+      </div>
+    `;
+  });
+}
+
+/* AGREGAR */
+function addToCart(name, price){
+  cart.push({name, price});
+  updateCart();
+}
+
+/* JUEGOS MANUAL */
+function addManual(name){
+  const price = event.target.parentElement.querySelector("input").value;
+
+  if(!price || price <= 0){
+    alert("Precio inválido");
+    return;
+  }
+
+  addToCart(name, parseFloat(price));
+}
+
+/* POKÉMON API */
 async function loadCards(){
 
   const res = await fetch(API);
   const json = await res.json();
 
   const grid = document.getElementById("grid");
-  grid.innerHTML = "";
 
   json.data.forEach(card => {
 
@@ -163,40 +256,27 @@ async function loadCards(){
       <p>${card.rarity || "N/A"}</p>
 
       <input type="number" placeholder="Precio" id="p_${card.id}">
-
-      <button class="add" id="b_${card.id}">
-        Agregar
-      </button>
+      <button class="add" id="b_${card.id}">Agregar</button>
     `;
 
     grid.appendChild(div);
 
     document.getElementById(`b_${card.id}`).addEventListener("click", () => {
-      addToCart(card);
+      const price = document.getElementById("p_" + card.id).value;
+
+      if(!price || price <= 0){
+        alert("Precio inválido");
+        return;
+      }
+
+      addToCart(card.name, parseFloat(price));
     });
 
   });
 }
 
-function addToCart(card){
-
-  const price = document.getElementById("p_" + card.id).value;
-
-  if(!price || price <= 0){
-    alert("Precio inválido");
-    return;
-  }
-
-  cart.push({
-    name: card.name,
-    price: parseFloat(price)
-  });
-
-  console.log("Carrito:", cart);
-  alert("Agregado: " + card.name);
-}
-
 loadCards();
+updateCart();
 
 </script>
 
