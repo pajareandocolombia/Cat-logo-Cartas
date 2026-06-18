@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda PRO v4 Admin + Inventario</title>
+<title>Tienda PRO v6 - Sistema Real</title>
 
 <style>
 body{
@@ -20,6 +20,13 @@ body{
   font-weight:bold;
 }
 
+/* STATUS BAR */
+.status{
+  background:#111827;
+  padding:8px;
+  font-size:14px;
+}
+
 /* MENU */
 .menu{
   display:flex;
@@ -30,13 +37,13 @@ body{
 .menu button{
   flex:1;
   padding:12px;
-  background:none;
   border:none;
+  background:none;
   color:white;
   cursor:pointer;
 }
 
-/* SECCIONES */
+/* SECTIONS */
 .section{display:none;padding:20px;}
 .active{display:block;}
 
@@ -53,202 +60,232 @@ body{
   border-radius:12px;
 }
 
-.card img{width:100%;border-radius:8px;}
-
-button.add{
-  width:100%;
-  margin-top:5px;
-  padding:6px;
+button{
+  cursor:pointer;
 }
 
-/* SEARCH */
-.searchBar{
-  width:100%;
+/* CART */
+.cart{
+  position:fixed;
+  right:0;
+  top:0;
+  width:260px;
+  height:100%;
+  background:#0b1220;
+  border-left:2px solid #1f2937;
   padding:10px;
-  margin-bottom:15px;
-  border:none;
-  border-radius:8px;
+  overflow:auto;
 }
 
 /* ADMIN PANEL */
 #adminPanel{
   position:fixed;
-  top:50px;
+  top:50%;
   left:50%;
-  transform:translateX(-50%);
-  width:400px;
+  transform:translate(-50%,-50%);
+  width:360px;
   background:#111827;
-  padding:15px;
   border:2px solid #0ea5e9;
+  padding:12px;
   display:none;
   z-index:999;
 }
 
-#adminPanel input, #adminPanel select{
+input,select{
   width:100%;
-  margin-bottom:8px;
   padding:6px;
+  margin-bottom:6px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="banner">
-  🧩 Tienda PRO v4 - Admin + Inventario + Search
-</div>
+<div class="banner">🧩 Tienda PRO v6 - Arquitectura Real</div>
 
-<!-- SEARCH GLOBAL -->
-<div style="padding:10px;">
-  <input class="searchBar" id="search" placeholder="🔎 Buscar productos tipo Amazon..." oninput="globalSearch()">
+<div class="status" id="status">
+Modo: 👤 Usuario
 </div>
 
 <!-- MENU -->
 <div class="menu">
   <button onclick="openTab('pokemon')">Pokémon</button>
   <button onclick="openTab('juegos')">🎮 Juegos</button>
-  <button onclick="openTab('jet')">Jet</button>
-  <button onclick="openTab('monedas')">Monedas</button>
 </div>
 
 <!-- POKEMON -->
 <div id="pokemon" class="section active">
   <h2>Pokémon</h2>
-  <div id="pokemonGrid" class="grid"></div>
+  <div id="grid" class="grid"></div>
 </div>
 
 <!-- JUEGOS -->
 <div id="juegos" class="section">
   <h2>Juegos</h2>
-  <div id="gamesGrid" class="grid"></div>
+  <div id="games" class="grid"></div>
 </div>
 
-<!-- OTROS -->
-<div id="jet" class="section"><h2>Jet</h2></div>
-<div id="monedas" class="section"><h2>Monedas</h2></div>
+<!-- CART -->
+<div class="cart">
+  <h3>🛒 Carrito</h3>
+  <div id="cart"></div>
+</div>
 
-<!-- ADMIN PANEL (OCULTO) -->
+<!-- ADMIN -->
 <div id="adminPanel">
   <h3>🔐 ADMIN PANEL</h3>
 
-  <input id="pName" placeholder="Nombre">
-  <input id="pPrice" placeholder="Precio">
-  <input id="pStock" placeholder="Stock">
-  <select id="pCat">
+  <input id="name" placeholder="Nombre">
+  <input id="price" placeholder="Precio">
+  <input id="stock" placeholder="Stock">
+  <select id="cat">
     <option value="pokemon">Pokémon</option>
     <option value="games">Juegos</option>
   </select>
 
-  <button onclick="createProduct()">Crear Producto</button>
+  <button onclick="createProduct()">Crear</button>
   <button onclick="closeAdmin()">Cerrar</button>
 </div>
 
 <script>
 
-/* ====== DATA ====== */
+/* =========================
+   🔐 STATE SYSTEM
+========================= */
+
+let isAdmin = false;
+const ADMIN_PASSWORD = "1234";
+
 let products = JSON.parse(localStorage.getItem("products")) || [
-  {id:1,name:"Charizard",price:50,stock:3,cat:"pokemon",active:true},
-  {id:2,name:"Pikachu V",price:20,stock:0,cat:"pokemon",active:true},
-  {id:3,name:"Zelda TOTK",price:60,stock:5,cat:"games",active:true}
+  {id:1,name:"Charizard EX",price:50,stock:3,cat:"pokemon",active:true},
+  {id:2,name:"Pikachu V",price:20,stock:5,cat:"pokemon",active:true},
+  {id:3,name:"Zelda TOTK",price:60,stock:2,cat:"games",active:true}
 ];
 
-/* ====== NAV ====== */
-function openTab(tab){
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+/* =========================
+   NAV
+========================= */
+function openTab(t){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(tab).classList.add("active");
+  document.getElementById(t).classList.add("active");
 }
 
-/* ====== RENDER ====== */
-function render(){
+/* =========================
+   ADMIN LOGIN (SEPARADO)
+========================= */
+document.addEventListener("keydown", e=>{
+  if(e.ctrlKey && e.shiftKey && e.key==="A"){
+    loginAdmin();
+  }
+});
 
-  localStorage.setItem("products", JSON.stringify(products));
+function loginAdmin(){
+  const pass = prompt("🔐 Password Admin:");
 
-  const pokemonGrid = document.getElementById("pokemonGrid");
-  const gamesGrid = document.getElementById("gamesGrid");
-
-  pokemonGrid.innerHTML = "";
-  gamesGrid.innerHTML = "";
-
-  products.forEach(p => {
-
-    if(!p.active || p.stock <= 0) return; // 🔥 SOLO STOCK DISPONIBLE
-
-    const card = `
-      <div class="card">
-        <h4>${p.name}</h4>
-        <p>$${p.price}</p>
-        <p>Stock: ${p.stock}</p>
-        <button onclick="buy(${p.id})">Agregar</button>
-
-        <button onclick="toggleProduct(${p.id})">
-          ${p.active ? "Desactivar" : "Activar"}
-        </button>
-      </div>
-    `;
-
-    if(p.cat === "pokemon") pokemonGrid.innerHTML += card;
-    if(p.cat === "games") gamesGrid.innerHTML += card;
-  });
-}
-
-/* ====== BUY ====== */
-function buy(id){
-  let p = products.find(x=>x.id===id);
-
-  if(p.stock <= 0) return alert("Sin stock");
-
-  p.stock -= 1;
-  render();
-}
-
-/* ====== ADMIN ====== */
-function openAdmin(){
-  document.getElementById("adminPanel").style.display="block";
+  if(pass === ADMIN_PASSWORD){
+    isAdmin = true;
+    document.getElementById("status").innerText = "Modo: 🔐 ADMIN";
+    alert("Acceso concedido");
+    document.getElementById("adminPanel").style.display="block";
+  }else{
+    alert("Acceso denegado");
+  }
 }
 
 function closeAdmin(){
   document.getElementById("adminPanel").style.display="none";
 }
 
-/* CTRL + SHIFT + A */
-document.addEventListener("keydown", e=>{
-  if(e.ctrlKey && e.shiftKey && e.key==="A"){
-    openAdmin();
-  }
-});
+/* =========================
+   RENDER ENGINE
+========================= */
+function render(){
 
-function createProduct(){
+  localStorage.setItem("products", JSON.stringify(products));
+  localStorage.setItem("cart", JSON.stringify(cart));
 
-  const name = document.getElementById("pName").value;
-  const price = parseFloat(document.getElementById("pPrice").value);
-  const stock = parseInt(document.getElementById("pStock").value);
-  const cat = document.getElementById("pCat").value;
+  const grid = document.getElementById("grid");
+  const games = document.getElementById("games");
 
-  products.push({
-    id:Date.now(),
-    name,price,stock,cat,active:true
+  grid.innerHTML="";
+  games.innerHTML="";
+
+  products.forEach(p=>{
+
+    // 👤 USER FILTER (clave del sistema)
+    if(!p.active || p.stock<=0) return;
+
+    const card = `
+      <div class="card">
+        <h4>${p.name}</h4>
+        <p>$${p.price}</p>
+        <p>Stock: ${p.stock}</p>
+
+        <button onclick="buy(${p.id})">Comprar</button>
+
+        ${isAdmin ? `
+          <button onclick="toggle(${p.id})">Activar/Desactivar</button>
+          <button onclick="editStock(${p.id})">Stock</button>
+        ` : ""}
+      </div>
+    `;
+
+    if(p.cat==="pokemon") grid.innerHTML+=card;
+    if(p.cat==="games") games.innerHTML+=card;
   });
 
-  render();
-  closeAdmin();
+  document.getElementById("cart").innerHTML =
+    cart.map(c=>`<div>${c.name} $${c.price}</div>`).join("");
 }
 
-/* ====== TOGGLE PRODUCT ====== */
-function toggleProduct(id){
+/* =========================
+   BUY SYSTEM
+========================= */
+function buy(id){
+
+  let p = products.find(x=>x.id===id);
+
+  if(!p || p.stock<=0) return;
+
+  p.stock--;
+  cart.push({name:p.name,price:p.price});
+
+  render();
+}
+
+/* =========================
+   ADMIN ACTIONS
+========================= */
+function toggle(id){
   let p = products.find(x=>x.id===id);
   p.active = !p.active;
   render();
 }
 
-/* ====== GLOBAL SEARCH ====== */
-function globalSearch(){
+function editStock(id){
+  let p = products.find(x=>x.id===id);
+  let v = prompt("Nuevo stock:", p.stock);
+  if(v!==null){
+    p.stock = parseInt(v);
+    render();
+  }
+}
 
-  const q = document.getElementById("search").value.toLowerCase();
+function createProduct(){
 
-  document.querySelectorAll(".card").forEach(card=>{
-    const text = card.innerText.toLowerCase();
-    card.style.display = text.includes(q) ? "block" : "none";
+  products.push({
+    id:Date.now(),
+    name:document.getElementById("name").value,
+    price:+document.getElementById("price").value,
+    stock:+document.getElementById("stock").value,
+    cat:document.getElementById("cat").value,
+    active:true
   });
+
+  closeAdmin();
+  render();
 }
 
 /* INIT */
