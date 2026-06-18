@@ -162,6 +162,13 @@ function renderCards(){
       <p>${c.rarity || "N/A"}</p>
 
       <input type="number" placeholder="Precio" value="${price}"
+  onchange="setPrice('${c.id}', this.value)">
+
+<label>
+  <input type="checkbox" ${isAvailable(c.id) ? "checked" : ""}
+    onchange="toggleStock('${c.id}', this.checked)">
+  Disponible
+</label> value="${price}"
         onchange="setPrice('${c.id}', this.value)">
 
       <div class="price">${price ? formatPrice(price) : ""}</div>
