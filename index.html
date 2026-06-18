@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO FINAL V6.2</title>
+<title>Tienda Pokémon PRO V7</title>
 
 <style>
 body{
@@ -22,9 +22,9 @@ header{
 /* SEARCH */
 .search{
   display:flex;
-  gap:10px;
   padding:10px;
   background:#111827;
+  position:relative;
 }
 
 .search input{
@@ -37,15 +37,17 @@ header{
 /* AUTOCOMPLETE */
 .suggestions{
   position:absolute;
+  top:45px;
+  left:10px;
+  right:10px;
   background:#1e293b;
-  width:300px;
+  z-index:1000;
   max-height:200px;
   overflow:auto;
-  z-index:100;
 }
 
 .suggestions div{
-  padding:6px;
+  padding:8px;
   cursor:pointer;
 }
 
@@ -58,7 +60,7 @@ header{
   display:flex;
 }
 
-/* SETS */
+/* SIDEBAR */
 .sets{
   width:220px;
   height:100vh;
@@ -78,6 +80,7 @@ header{
 
 .set img{
   width:100%;
+  border-radius:4px;
 }
 
 /* MAIN */
@@ -114,47 +117,46 @@ button{
   background:#22c55e;
   color:white;
 }
+
+/* GLOBAL BUTTON */
+.global-btn{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+  background:#3b82f6;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  color:white;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-🃏 Pokémon TCG PRO FINAL V6.2
+🃏 Pokémon TCG PRO V7 — Final Stable
 </header>
 
 <!-- SEARCH -->
 <div class="search">
   <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
+  <div id="suggestions" class="suggestions"></div>
 </div>
-
-<div id="suggestions" class="suggestions"></div>
 
 <div class="container">
 
-<!-- SETS -->
+<!-- SIDEBAR -->
 <div class="sets" id="sets">
-
-  <!-- 🟢 BOTÓN NUEVO (ARRIBA DE COLECCIONES) -->
-  <div style="padding:6px; margin-bottom:10px;">
-    <button onclick="loadAllStock()" style="
-      width:100%;
-      padding:8px;
-      background:#3b82f6;
-      border:none;
-      color:white;
-      border-radius:6px;
-      cursor:pointer;
-      font-weight:bold;
-    ">
-      🟢 Ver todas las cartas en stock
-    </button>
-  </div>
-
+  <button class="global-btn" onclick="loadAllStock()">
+    🟢 Ver todo el stock
+  </button>
 </div>
+
 <!-- MAIN -->
 <div class="main">
-  <h3 id="title">Cartas en stock</h3>
+  <h3 id="title">Cargando...</h3>
   <div class="grid" id="grid"></div>
 </div>
 
@@ -165,14 +167,14 @@ button{
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
-/* INVENTARIO (ADMIN CONTROLA ESTO) */
+/* STATE */
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-
-/* GLOBAL CACHE */
 let allCards = [];
+let currentSet = null;
+let viewMode = "all";
 
 /* ======================
-   INIT SETS
+   LOAD SETS
 ====================== */
 async function loadSets(){
 
@@ -202,50 +204,15 @@ async function loadSets(){
 }
 
 /* ======================
-   LOAD ALL STOCK (DEFAULT VIEW)
+   GLOBAL STOCK VIEW
 ====================== */
 async function loadAllStock(){
 
+  viewMode = "all";
   currentSet = null;
 
   document.getElementById("title").innerText =
-    "Cartas en stock (vista global)";
-
-  const resSets = await fetch(API_SETS);
-  const sets = await resSets.json();
-
-  let cards = [];
-
-  const ordered = sets.data.sort((a,b)=>
-    new Date(b.releaseDate) - new Date(a.releaseDate)
-  );
-
-  for(const s of ordered){
-
-    const res = await fetch(API_CARDS + s.id);
-    const json = await res.json();
-
-    json.data.forEach(c=>{
-
-      const inv = inventory[c.id];
-
-      if(inv && inv.stock && inv.qty > 0){
-
-        cards.push({
-          id:c.id,
-          name:c.name,
-          img:c.images.small,
-          set:s.name,
-          qty:inv.qty
-        });
-      }
-    });
-  }
-
-  allCards = cards;
-
-  renderGrouped(cards);
-}
+    "Todas las cartas en stock";
 
   const resSets = await fetch(API_SETS);
   const sets = await resSets.json();
@@ -284,7 +251,7 @@ async function loadAllStock(){
 }
 
 /* ======================
-   GROUP VIEW (DEFAULT)
+   GROUP VIEW
 ====================== */
 function renderGrouped(cards){
 
@@ -320,9 +287,12 @@ function renderGrouped(cards){
 }
 
 /* ======================
-   LOAD BY SET
+   FILTER BY SET
 ====================== */
 async function loadSet(setId, name){
+
+  viewMode = "set";
+  currentSet = setId;
 
   document.getElementById("title").innerText = name;
 
@@ -338,7 +308,8 @@ async function loadSet(setId, name){
       id:c.id,
       name:c.name,
       img:c.images.small,
-      qty:inventory[c.id].qty
+      qty:inventory[c.id].qty,
+      set:name
     }));
 
   render(filtered);
@@ -369,7 +340,7 @@ function render(cards){
 }
 
 /* ======================
-   SEARCH + AUTOCOMPLETE
+   SEARCH
 ====================== */
 function searchCards(){
 
@@ -405,7 +376,7 @@ function selectSearch(name){
 }
 
 /* ======================
-   BUY WHATSAPP
+   BUY
 ====================== */
 function buy(name){
 
