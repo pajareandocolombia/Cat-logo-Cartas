@@ -2,29 +2,95 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V8.4</title>
+<title>Tienda Pokémon PRO V8.3</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-between;}
-.admin-btn{background:#f59e0b;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
+header{
+  background:#1e3a8a;
+  padding:10px;
+  display:flex;
+  justify-content:space-between;
+}
+.admin-btn{
+  background:#f59e0b;
+  border:none;
+  padding:6px 10px;
+  border-radius:6px;
+  cursor:pointer;
+}
 .search{padding:10px;background:#111827;position:relative;}
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
-.suggestions{position:absolute;top:45px;left:10px;right:10px;background:#1e293b;max-height:200px;overflow:auto;}
-.container{display:flex;}
-.sets{width:220px;height:100vh;overflow:auto;background:#111827;padding:8px;}
-.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;font-size:12px;}
-.set img{width:100%;}
-.main{flex:1;padding:10px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
-.card{background:#1e293b;padding:8px;border-radius:10px;}
-.card img{width:100%;}
-button{width:100%;margin-top:5px;padding:6px;border:none;border-radius:6px;background:#22c55e;color:white;}
-.global-btn{width:100%;padding:8px;margin-bottom:10px;background:#3b82f6;border:none;border-radius:6px;color:white;}
+.suggestions{
+  position:absolute;top:45px;left:10px;right:10px;
+  background:#1e293b;max-height:200px;overflow:auto;
+  z-index:1000;
+}
+.suggestions div{padding:6px;cursor:pointer;}
+.suggestions div:hover{background:#334155;}
 
+.container{display:flex;}
+
+.sets{
+  width:220px;height:100vh;overflow:auto;
+  background:#111827;padding:8px;
+}
+
+.set{
+  background:#1e293b;
+  padding:6px;margin-bottom:6px;
+  border-radius:6px;cursor:pointer;
+  font-size:12px;
+}
+.set img{width:100%;}
+
+.main{flex:1;padding:10px;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+}
+
+.card{
+  background:#1e293b;
+  padding:8px;
+  border-radius:10px;
+}
+.card img{width:100%;}
+
+button{
+  width:100%;
+  margin-top:5px;
+  padding:6px;
+  border:none;
+  border-radius:6px;
+  background:#22c55e;
+  color:white;
+}
+
+.global-btn{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+  background:#3b82f6;
+  border:none;
+  border-radius:6px;
+  color:white;
+}
+
+/* ADMIN PANEL */
 #adminPanel{
-position:fixed;top:0;right:-400px;width:400px;height:100%;
-background:#020617;overflow:auto;padding:10px;transition:0.3s;
+  position:fixed;
+  top:0;
+  right:-400px;
+  width:400px;
+  height:100%;
+  background:#020617;
+  overflow:auto;
+  padding:10px;
+  transition:0.3s;
+  z-index:9999;
 }
 </style>
 </head>
@@ -32,7 +98,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V8.4</div>
+  <div>🃏 Tienda Pokémon PRO V8.3</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -54,6 +120,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 
 </div>
 
+<!-- ADMIN -->
 <div id="adminPanel">
   <h2>🛠️ Panel Admin</h2>
   <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
@@ -65,23 +132,9 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARD = "https://api.pokemontcg.io/v2/cards/";
 
-let inventory = {};
+let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 let allCards = [];
 let loadedCards = {};
-
-/* ================= INIT ================= */
-document.addEventListener("DOMContentLoaded", async () => {
-
-  const saved = localStorage.getItem("inventory");
-  inventory = saved ? JSON.parse(saved) : {};
-
-  await loadSets();
-
-  setTimeout(()=>{
-    loadAllStock();
-  },300);
-
-});
 
 /* ================= ADMIN ================= */
 function loginAdmin(){
@@ -92,9 +145,8 @@ function loginAdmin(){
   }
 }
 
-/* ================= SETS MENU ================= */
+/* ================= LOAD SETS MENU ================= */
 async function loadSets(){
-
   const res = await fetch(API_SETS);
   const json = await res.json();
 
@@ -119,24 +171,14 @@ async function loadSets(){
   });
 }
 
-/* ================= 🔥 LOAD STOCK ================= */
+/* ================= 🔥 LOAD STOCK CORRECTO ================= */
 async function loadAllStock(){
 
   document.getElementById("title").innerText =
     "Todas las cartas en stock";
 
-  const saved = localStorage.getItem("inventory");
-  inventory = saved ? JSON.parse(saved) : {};
-
-  const ids = Object.keys(inventory);
-
-  if(ids.length === 0){
-    document.getElementById("grid").innerHTML =
-      "<h3>No hay cartas en stock (activa desde admin)</h3>";
-    return;
-  }
-
   let grouped = {};
+  const ids = Object.keys(inventory);
 
   for(const id of ids){
 
@@ -149,15 +191,15 @@ async function loadAllStock(){
     const c = loadedCards[id];
     const inv = inventory[id];
 
-    if(inv.stock && inv.qty > 0){
+    if(inv && inv.stock && inv.qty > 0){
 
       const setName = c.set.name;
       const releaseDate = c.set.releaseDate || "2000-01-01";
 
       if(!grouped[setName]){
         grouped[setName] = {
-          releaseDate,
-          cards:[]
+          releaseDate: releaseDate,
+          cards: []
         };
       }
 
@@ -170,22 +212,23 @@ async function loadAllStock(){
     }
   }
 
-  let ordered = Object.keys(grouped).map(k=>({
-    name:k,
-    releaseDate:grouped[k].releaseDate,
-    cards:grouped[k].cards
+  let orderedSets = Object.keys(grouped).map(set=>({
+    name:set,
+    releaseDate:grouped[set].releaseDate,
+    cards:grouped[set].cards
   }));
 
-  ordered.sort((a,b)=>
+  orderedSets.sort((a,b)=>
     new Date(b.releaseDate) - new Date(a.releaseDate)
   );
 
-  allCards = ordered.flatMap(s=>s.cards);
+  // 🔥 guardar para búsqueda
+  allCards = orderedSets.flatMap(s=>s.cards);
 
-  renderGrouped(ordered);
+  renderGrouped(orderedSets);
 }
 
-/* ================= RENDER ================= */
+/* ================= RENDER CORRECTO ================= */
 function renderGrouped(sets){
 
   const grid = document.getElementById("grid");
@@ -209,11 +252,10 @@ function renderGrouped(sets){
         </div>
       `;
     });
-
   });
 }
 
-/* ================= FILTER SET ================= */
+/* ================= FILTRO POR SET ================= */
 async function loadSet(setId, name){
 
   document.getElementById("title").innerText = name;
@@ -233,6 +275,7 @@ async function loadSet(setId, name){
   render(filtered);
 }
 
+/* ================= RENDER SIMPLE ================= */
 function render(cards){
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
@@ -249,7 +292,7 @@ function render(cards){
   });
 }
 
-/* ================= SEARCH ================= */
+/* ================= BUSCADOR ================= */
 function searchCards(){
 
   const q = document.getElementById("search").value.toLowerCase();
@@ -273,9 +316,9 @@ function searchCards(){
 }
 
 function selectSearch(name){
-  document.getElementById("search").value="";
-  document.getElementById("suggestions").innerHTML="";
-  render(allCards.filter(c=>c.name===name));
+  document.getElementById("search").value = "";
+  document.getElementById("suggestions").innerHTML = "";
+  render(allCards.filter(c=>c.name === name));
 }
 
 /* ================= ADMIN ================= */
@@ -325,34 +368,32 @@ async function loadAdminSet(){
 }
 
 function toggleStock(id){
-  if(!inventory[id]) inventory[id]={stock:false,qty:1};
-  inventory[id].stock=!inventory[id].stock;
+  if(!inventory[id]) inventory[id] = {stock:false, qty:1};
+  inventory[id].stock = !inventory[id].stock;
   saveInventory();
 }
 
-function changeQty(id,qty){
-  if(!inventory[id]) inventory[id]={stock:true,qty:1};
-  inventory[id].qty=parseInt(qty)||1;
+function changeQty(id, qty){
+  if(!inventory[id]) inventory[id] = {stock:true, qty:1};
+  inventory[id].qty = parseInt(qty) || 1;
   saveInventory();
 }
 
 function saveInventory(){
-
-  Object.keys(inventory).forEach(id=>{
-    if(!inventory[id].stock){
-      delete inventory[id];
-    }
-  });
-
   localStorage.setItem("inventory", JSON.stringify(inventory));
-
   loadAllStock();
 }
 
 /* ================= BUY ================= */
 function buy(name){
-  window.open("https://wa.me/57TU_NUMERO?text=Quiero%20"+encodeURIComponent(name));
+  window.open(
+    "https://wa.me/57TU_NUMERO?text=Quiero%20la%20carta%20"+encodeURIComponent(name)
+  );
 }
+
+/* INIT */
+loadSets();
+loadAllStock();
 
 </script>
 
