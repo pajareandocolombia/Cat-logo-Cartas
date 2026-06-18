@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO FINAL</title>
+<title>Tienda Pokémon PRO V5</title>
 
 <style>
 body{
@@ -24,7 +24,7 @@ header{
   display:flex;
 }
 
-/* SIDEBAR SETS */
+/* SETS */
 .sets{
   width:220px;
   height:100vh;
@@ -44,7 +44,6 @@ header{
 
 .set img{
   width:100%;
-  border-radius:4px;
 }
 
 /* MAIN */
@@ -64,7 +63,6 @@ header{
   background:#1e293b;
   padding:8px;
   border-radius:10px;
-  font-size:13px;
 }
 
 .card img{
@@ -72,58 +70,44 @@ header{
   border-radius:6px;
 }
 
-/* BUTTON */
+/* BUTTONS */
 button{
   width:100%;
   margin-top:5px;
   padding:6px;
-  cursor:pointer;
   border:none;
   border-radius:6px;
+  cursor:pointer;
 }
 
-/* BUY */
-.buy{
+.add{
   background:#22c55e;
   color:white;
 }
 
-/* ADMIN BUTTON */
-.adminBtn{
+/* CART */
+.cart{
   position:fixed;
-  top:10px;
-  right:10px;
-  background:#f59e0b;
-  color:black;
-  padding:6px 10px;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-}
-
-/* ADMIN PANEL */
-#adminPanel{
-  position:fixed;
-  top:0;
   right:0;
-  width:260px;
+  top:0;
+  width:280px;
   height:100%;
-  background:#111827;
+  background:#0b1220;
   padding:10px;
-  display:none;
-  border-left:2px solid #f59e0b;
+  overflow:auto;
+  border-left:2px solid #1e3a8a;
 }
 
-input{
-  width:100%;
-  margin-bottom:5px;
+.cart-item{
+  background:#1e293b;
   padding:6px;
+  margin-bottom:5px;
+  border-radius:6px;
 }
 
-/* STOCK TAG */
-.stock{
-  font-size:12px;
-  opacity:0.8;
+.total{
+  font-weight:bold;
+  margin-top:10px;
 }
 </style>
 </head>
@@ -131,31 +115,8 @@ input{
 <body>
 
 <header>
-🃏 Tienda Pokémon PRO FINAL
+🛒 Tienda Pokémon PRO V5 — Carrito Amazon
 </header>
-
-<button class="adminBtn" onclick="openAdmin()">Admin</button>
-
-<!-- ADMIN PANEL -->
-<div id="adminPanel">
-<h3>🔐 Admin Panel</h3>
-
-<input id="pass" type="password" placeholder="Password">
-<button onclick="loginAdmin()">Entrar</button>
-
-<hr>
-
-<input id="name" placeholder="Nombre carta">
-<input id="price" placeholder="Precio">
-
-<button onclick="addManualCard()">Agregar carta manual</button>
-
-<hr>
-
-<p>Estado admin: <span id="status">NO</span></p>
-
-<button onclick="closeAdmin()">Cerrar</button>
-</div>
 
 <div class="container">
 
@@ -170,51 +131,40 @@ input{
 
 </div>
 
+<!-- CART -->
+<div class="cart">
+  <h3>🛒 Carrito</h3>
+  <div id="cart"></div>
+  <div class="total" id="total"></div>
+  <button onclick="checkout()">Pagar por WhatsApp</button>
+</div>
+
 <script>
 
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
-/* INVENTARIO GLOBAL */
+/* DATA */
+let cart = [];
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 
-/* ADMIN STATE */
-let admin = false;
-
 /* ======================
-   ADMIN PANEL
-====================== */
-function openAdmin(){
-  document.getElementById("adminPanel").style.display="block";
-}
-
-function closeAdmin(){
-  document.getElementById("adminPanel").style.display="none";
-}
-
-function loginAdmin(){
-  const pass = document.getElementById("pass").value;
-
-  if(pass === "1234"){
-    admin = true;
-    document.getElementById("status").innerText = "SI";
-    alert("Admin activado");
-  } else {
-    alert("Password incorrecto");
-  }
-}
-
-/* ======================
-   SETS
+   SETS (ORDENADOS)
 ====================== */
 async function loadSets(){
 
   const res = await fetch(API_SETS);
   const json = await res.json();
 
-  const box = document.getElementById("sets");
+  // 🔥 ORDEN POR MÁS RECIENTE
+  const sets = json.data.sort((a,b)=>{
+    return new Date(b.releaseDate) - new Date(a.releaseDate);
+  });
 
-  json.data.forEach(s=>{
+  const box = document.getElementById("sets");
+  box.innerHTML = "";
+
+  sets.forEach(s=>{
 
     const div = document.createElement("div");
     div.className = "set";
@@ -245,106 +195,85 @@ async function loadCards(setId, name){
 
   json.data.forEach(c=>{
 
-    if(!inventory[c.id]){
-      inventory[c.id] = {
-        stock:false,
-        qty:0,
-        price:0
-      };
-    }
-
     const inv = inventory[c.id];
 
-    // 👤 USUARIO: solo stock activo
-    if(!admin && (!inv.stock || inv.qty <= 0)) return;
+    if(!inv || !inv.stock || inv.qty <= 0) return;
 
     grid.innerHTML += `
       <div class="card">
         <img src="${c.images.small}">
         <div>${c.name}</div>
+        <div>Stock: ${inv.qty}</div>
 
-        <div class="stock">
-          Stock: ${inv.qty}
-        </div>
+        <button class="add" onclick="addToCart('${c.name}', ${inv.price || 0})">
+          Agregar al carrito
+        </button>
+      </div>
+    `;
+  });
+}
 
-        ${admin ? `
-          <button onclick="toggleStock('${c.id}')">
-            ${inv.stock ? "❌ Desactivar" : "✔ Activar"}
-          </button>
+/* ======================
+   CART (AMAZON STYLE)
+====================== */
+function addToCart(name, price){
 
-          <button onclick="addStock('${c.id}')">+ Stock</button>
-          <button onclick="removeStock('${c.id}')">- Stock</button>
-        ` : `
-          <button class="buy" onclick="buy('${c.name}')">
-            Comprar por WhatsApp
-          </button>
-        `}
+  cart.push({name, price: price || 10000});
+
+  renderCart();
+}
+
+function renderCart(){
+
+  const box = document.getElementById("cart");
+  box.innerHTML = "";
+
+  let total = 0;
+
+  cart.forEach((c,i)=>{
+
+    total += c.price;
+
+    box.innerHTML += `
+      <div class="cart-item">
+        ${c.name}<br>
+        $${c.price}
+        <button onclick="removeItem(${i})">❌</button>
       </div>
     `;
   });
 
-  save();
+  document.getElementById("total").innerText =
+    "Total: $" + total;
+}
+
+function removeItem(i){
+  cart.splice(i,1);
+  renderCart();
 }
 
 /* ======================
-   STOCK CONTROL
+   CHECKOUT WHATSAPP
 ====================== */
-function toggleStock(id){
-  inventory[id].stock = !inventory[id].stock;
+function checkout(){
 
-  if(inventory[id].stock && inventory[id].qty === 0){
-    inventory[id].qty = 1;
+  if(cart.length === 0){
+    alert("Carrito vacío");
+    return;
   }
 
-  save();
-  reload();
-}
+  let msg = "Hola quiero comprar:%0A";
 
-function addStock(id){
-  inventory[id].qty++;
-  inventory[id].stock = true;
-  save();
-  reload();
-}
+  let total = 0;
 
-function removeStock(id){
-  if(inventory[id].qty > 0){
-    inventory[id].qty--;
-  }
+  cart.forEach(c=>{
+    msg += "- " + c.name + " $" + c.price + "%0A";
+    total += c.price;
+  });
 
-  if(inventory[id].qty === 0){
-    inventory[id].stock = false;
-  }
+  msg += "%0ATotal: $" + total;
 
-  save();
-  reload();
-}
-
-/* ======================
-   WHATSAPP BUY
-====================== */
-function buy(name){
-  window.open(
-    "https://wa.me/57TU_NUMERO?text=Quiero%20la%20carta%20"+encodeURIComponent(name)
-  );
-}
-
-/* ======================
-   MANUAL ADD (OPTIONAL)
-====================== */
-function addManualCard(){
-  alert("Esto es demo. Usa sets para cartas reales.");
-}
-
-/* ======================
-   STORAGE
-====================== */
-function save(){
-  localStorage.setItem("inventory", JSON.stringify(inventory));
-}
-
-function reload(){
-  location.reload();
+  window.open("https://wa.me/57TU_NUMERO?text=" + msg);
 }
 
 /* INIT */
