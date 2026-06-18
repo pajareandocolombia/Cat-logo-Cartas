@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda PRO v3</title>
+<title>Tienda PRO v4 Admin + Inventario</title>
 
 <style>
 body{
   margin:0;
-  font-family: Arial;
+  font-family:Arial;
   background:#0f172a;
   color:white;
 }
@@ -17,7 +17,6 @@ body{
   background:linear-gradient(90deg,#1e3a8a,#0ea5e9);
   padding:18px;
   text-align:center;
-  font-size:22px;
   font-weight:bold;
 }
 
@@ -37,27 +36,9 @@ body{
   cursor:pointer;
 }
 
-.menu button:hover{
-  background:#1f2937;
-}
-
 /* SECCIONES */
-.section{
-  display:none;
-  padding:20px;
-}
-
-.active{
-  display:block;
-}
-
-/* SUB SECCIONES */
-.submenu button{
-  margin-right:10px;
-  margin-bottom:10px;
-  padding:6px 10px;
-  cursor:pointer;
-}
+.section{display:none;padding:20px;}
+.active{display:block;}
 
 /* GRID */
 .grid{
@@ -70,66 +51,43 @@ body{
   background:#1e293b;
   padding:10px;
   border-radius:12px;
-  text-align:center;
 }
 
-.card img{
-  width:100%;
-  border-radius:8px;
-}
+.card img{width:100%;border-radius:8px;}
 
 button.add{
   width:100%;
   margin-top:5px;
   padding:6px;
-  cursor:pointer;
 }
 
-/* CARRITO PRO */
-.cart{
-  position:fixed;
-  right:0;
-  top:0;
-  height:100%;
-  width:60px;
-  background:#0b1220;
-  border-left:2px solid #1f2937;
-  overflow:hidden;
-  transition:0.3s;
-}
-
-.cart:hover{
-  width:300px;
-}
-
-.cart-header{
+/* SEARCH */
+.searchBar{
+  width:100%;
   padding:10px;
-  font-weight:bold;
-  background:#111827;
-  text-align:center;
-}
-
-.badge{
-  background:red;
-  padding:2px 6px;
-  border-radius:10px;
-  font-size:12px;
-}
-
-.cart-content{
-  padding:10px;
-  opacity:0;
-}
-
-.cart:hover .cart-content{
-  opacity:1;
-}
-
-.cart-item{
-  background:#1e293b;
-  padding:8px;
-  margin-bottom:8px;
+  margin-bottom:15px;
+  border:none;
   border-radius:8px;
+}
+
+/* ADMIN PANEL */
+#adminPanel{
+  position:fixed;
+  top:50px;
+  left:50%;
+  transform:translateX(-50%);
+  width:400px;
+  background:#111827;
+  padding:15px;
+  border:2px solid #0ea5e9;
+  display:none;
+  z-index:999;
+}
+
+#adminPanel input, #adminPanel select{
+  width:100%;
+  margin-bottom:8px;
+  padding:6px;
 }
 </style>
 </head>
@@ -137,186 +95,164 @@ button.add{
 <body>
 
 <div class="banner">
-  🧩 Tienda PRO v3 - Coleccionables & Juegos
+  🧩 Tienda PRO v4 - Admin + Inventario + Search
 </div>
 
-<!-- MENU ORDENADO -->
+<!-- SEARCH GLOBAL -->
+<div style="padding:10px;">
+  <input class="searchBar" id="search" placeholder="🔎 Buscar productos tipo Amazon..." oninput="globalSearch()">
+</div>
+
+<!-- MENU -->
 <div class="menu">
   <button onclick="openTab('pokemon')">Pokémon</button>
   <button onclick="openTab('juegos')">🎮 Juegos</button>
   <button onclick="openTab('jet')">Jet</button>
   <button onclick="openTab('monedas')">Monedas</button>
-  <button onclick="openTab('billetes')">Billetes</button>
-  <button onclick="openTab('albumes')">Álbumes</button>
-  <button onclick="openTab('estampillas')">Estampillas</button>
-  <button onclick="openTab('accesorios')">Accesorios</button>
 </div>
 
-<!-- 🃏 POKÉMON -->
+<!-- POKEMON -->
 <div id="pokemon" class="section active">
-
   <h2>Pokémon</h2>
-
-  <div class="submenu">
-    <button onclick="showPokemon('sellados')">📦 Sellados</button>
-    <button onclick="showPokemon('singles')">🃏 Cartas Individuales</button>
-  </div>
-
-  <!-- SELLADOS -->
-  <div id="sellados">
-    <h3>Sellados</h3>
-    <p>ETB, Booster Boxes, Packs sellados próximamente...</p>
-  </div>
-
-  <!-- SINGLES -->
-  <div id="singles" style="display:none;">
-    <h3>Cartas Individuales</h3>
-    <div id="grid" class="grid"></div>
-  </div>
-
+  <div id="pokemonGrid" class="grid"></div>
 </div>
 
-<!-- 🎮 JUEGOS -->
+<!-- JUEGOS -->
 <div id="juegos" class="section">
-
-  <h2>🎮 Juegos</h2>
-
-  <div class="grid">
-
-    <div class="card">
-      <h3>Pokémon Scarlet</h3>
-      <input type="number" placeholder="Precio">
-      <button class="add" onclick="addManual('Pokémon Scarlet', this)">Agregar</button>
-    </div>
-
-    <div class="card">
-      <h3>Zelda TOTK</h3>
-      <input type="number" placeholder="Precio">
-      <button class="add" onclick="addManual('Zelda TOTK', this)">Agregar</button>
-    </div>
-
-  </div>
-
+  <h2>Juegos</h2>
+  <div id="gamesGrid" class="grid"></div>
 </div>
 
 <!-- OTROS -->
 <div id="jet" class="section"><h2>Jet</h2></div>
 <div id="monedas" class="section"><h2>Monedas</h2></div>
-<div id="billetes" class="section"><h2>Billetes</h2></div>
-<div id="albumes" class="section"><h2>Álbumes</h2></div>
-<div id="estampillas" class="section"><h2>Estampillas</h2></div>
-<div id="accesorios" class="section"><h2>Accesorios</h2></div>
 
-<!-- 🛒 CARRITO -->
-<div class="cart">
+<!-- ADMIN PANEL (OCULTO) -->
+<div id="adminPanel">
+  <h3>🔐 ADMIN PANEL</h3>
 
-  <div class="cart-header">
-    🛒 <span class="badge" id="count">0</span>
-  </div>
+  <input id="pName" placeholder="Nombre">
+  <input id="pPrice" placeholder="Precio">
+  <input id="pStock" placeholder="Stock">
+  <select id="pCat">
+    <option value="pokemon">Pokémon</option>
+    <option value="games">Juegos</option>
+  </select>
 
-  <div class="cart-content" id="cartItems">
-    <p style="font-size:12px;color:#9ca3af;">Hover para ver carrito</p>
-  </div>
-
+  <button onclick="createProduct()">Crear Producto</button>
+  <button onclick="closeAdmin()">Cerrar</button>
 </div>
 
 <script>
 
-const API = "https://api.pokemontcg.io/v2/cards?pageSize=20";
+/* ====== DATA ====== */
+let products = JSON.parse(localStorage.getItem("products")) || [
+  {id:1,name:"Charizard",price:50,stock:3,cat:"pokemon",active:true},
+  {id:2,name:"Pikachu V",price:20,stock:0,cat:"pokemon",active:true},
+  {id:3,name:"Zelda TOTK",price:60,stock:5,cat:"games",active:true}
+];
 
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-/* NAV */
+/* ====== NAV ====== */
 function openTab(tab){
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById(tab).classList.add("active");
 }
 
-/* POKEMON SUB */
-function showPokemon(section){
+/* ====== RENDER ====== */
+function render(){
 
-  document.getElementById("sellados").style.display = "none";
-  document.getElementById("singles").style.display = "none";
+  localStorage.setItem("products", JSON.stringify(products));
 
-  document.getElementById(section).style.display = "block";
-}
+  const pokemonGrid = document.getElementById("pokemonGrid");
+  const gamesGrid = document.getElementById("gamesGrid");
 
-/* CART */
-function updateCart(){
+  pokemonGrid.innerHTML = "";
+  gamesGrid.innerHTML = "";
 
-  localStorage.setItem("cart", JSON.stringify(cart));
+  products.forEach(p => {
 
-  document.getElementById("count").innerText = cart.length;
+    if(!p.active || p.stock <= 0) return; // 🔥 SOLO STOCK DISPONIBLE
 
-  const box = document.getElementById("cartItems");
-  box.innerHTML = "";
+    const card = `
+      <div class="card">
+        <h4>${p.name}</h4>
+        <p>$${p.price}</p>
+        <p>Stock: ${p.stock}</p>
+        <button onclick="buy(${p.id})">Agregar</button>
 
-  cart.forEach(item => {
-    box.innerHTML += `
-      <div class="cart-item">
-        <b>${item.name}</b><br>
-        $${item.price}
+        <button onclick="toggleProduct(${p.id})">
+          ${p.active ? "Desactivar" : "Activar"}
+        </button>
       </div>
     `;
+
+    if(p.cat === "pokemon") pokemonGrid.innerHTML += card;
+    if(p.cat === "games") gamesGrid.innerHTML += card;
   });
 }
 
-function addToCart(name, price){
-  cart.push({name, price});
-  updateCart();
+/* ====== BUY ====== */
+function buy(id){
+  let p = products.find(x=>x.id===id);
+
+  if(p.stock <= 0) return alert("Sin stock");
+
+  p.stock -= 1;
+  render();
 }
 
-/* JUEGOS */
-function addManual(name, btn){
-  const price = btn.parentElement.querySelector("input").value;
+/* ====== ADMIN ====== */
+function openAdmin(){
+  document.getElementById("adminPanel").style.display="block";
+}
 
-  if(!price || price <= 0){
-    alert("Precio inválido");
-    return;
+function closeAdmin(){
+  document.getElementById("adminPanel").style.display="none";
+}
+
+/* CTRL + SHIFT + A */
+document.addEventListener("keydown", e=>{
+  if(e.ctrlKey && e.shiftKey && e.key==="A"){
+    openAdmin();
   }
+});
 
-  addToCart(name, parseFloat(price));
+function createProduct(){
+
+  const name = document.getElementById("pName").value;
+  const price = parseFloat(document.getElementById("pPrice").value);
+  const stock = parseInt(document.getElementById("pStock").value);
+  const cat = document.getElementById("pCat").value;
+
+  products.push({
+    id:Date.now(),
+    name,price,stock,cat,active:true
+  });
+
+  render();
+  closeAdmin();
 }
 
-/* API POKEMON */
-async function loadCards(){
+/* ====== TOGGLE PRODUCT ====== */
+function toggleProduct(id){
+  let p = products.find(x=>x.id===id);
+  p.active = !p.active;
+  render();
+}
 
-  const res = await fetch(API);
-  const json = await res.json();
+/* ====== GLOBAL SEARCH ====== */
+function globalSearch(){
 
-  const grid = document.getElementById("grid");
+  const q = document.getElementById("search").value.toLowerCase();
 
-  json.data.forEach(card => {
-
-    const div = document.createElement("div");
-    div.className = "card";
-
-    div.innerHTML = `
-      <img src="${card.images.small}">
-      <h4>${card.name}</h4>
-      <input type="number" placeholder="Precio" id="p_${card.id}">
-      <button class="add" id="b_${card.id}">Agregar</button>
-    `;
-
-    grid.appendChild(div);
-
-    document.getElementById(`b_${card.id}`).addEventListener("click", () => {
-
-      const price = document.getElementById("p_" + card.id).value;
-
-      if(!price || price <= 0){
-        alert("Precio inválido");
-        return;
-      }
-
-      addToCart(card.name, parseFloat(price));
-    });
-
+  document.querySelectorAll(".card").forEach(card=>{
+    const text = card.innerText.toLowerCase();
+    card.style.display = text.includes(q) ? "block" : "none";
   });
 }
 
-loadCards();
-updateCart();
+/* INIT */
+render();
 
 </script>
 
