@@ -63,11 +63,11 @@ function formatPrice(v){
 
 async function load(){
 
-  const data = await fetch(API_URL).then(r=>r.json());
+async function load(){
 
-  const disponibles = data.filter(c => 
-    c.available == true || c.available == "TRUE"
-  );
+  const data = await fetch("cartas.json").then(r=>r.json());
+
+  const disponibles = data.filter(c => c.available);
 
   const grid = document.getElementById("grid");
 
@@ -76,12 +76,11 @@ async function load(){
       <img src="${c.small}" onclick="openImg('${c.large}')">
       <h4>${c.name}</h4>
       <p>${c.rarity}</p>
-      <div class="price">${formatPrice(c.price)}</div>
+      <div class="price">$${c.price}</div>
     </div>
   `).join("");
 
 }
-
 function openImg(src){
   modal.style.display="flex";
   modalImg.src = src;
