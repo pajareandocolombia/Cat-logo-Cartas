@@ -2,46 +2,18 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V7.3</title>
+<title>Tienda Pokémon PRO V8</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
+
 header{
   background:#1e3a8a;
   padding:10px;
   display:flex;
   justify-content:space-between;
-  align-items:center;
 }
-.search{padding:10px;background:#111827;position:relative;}
-.search input{width:100%;padding:8px;border-radius:6px;border:none;}
-.suggestions{
-  position:absolute;top:45px;left:10px;right:10px;
-  background:#1e293b;max-height:200px;overflow:auto;
-}
-.container{display:flex;}
-.sets{
-  width:220px;height:100vh;overflow:auto;
-  background:#111827;padding:8px;
-}
-.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;font-size:12px;}
-.set img{width:100%;}
-.main{flex:1;padding:10px;}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-  gap:10px;
-}
-.card{background:#1e293b;padding:8px;border-radius:10px;}
-.card img{width:100%;}
-button{
-  width:100%;margin-top:5px;padding:6px;border:none;
-  border-radius:6px;background:#22c55e;color:white;
-}
-.global-btn{
-  width:100%;padding:8px;margin-bottom:10px;
-  background:#3b82f6;border:none;border-radius:6px;color:white;
-}
+
 .admin-btn{
   background:#f59e0b;
   border:none;
@@ -49,13 +21,87 @@ button{
   border-radius:6px;
   cursor:pointer;
 }
+
+.search{padding:10px;background:#111827;position:relative;}
+.search input{width:100%;padding:8px;border-radius:6px;border:none;}
+
+.suggestions{
+  position:absolute;top:45px;left:10px;right:10px;
+  background:#1e293b;max-height:200px;overflow:auto;
+}
+
+.container{display:flex;}
+
+.sets{
+  width:220px;height:100vh;overflow:auto;
+  background:#111827;padding:8px;
+}
+
+.set{
+  background:#1e293b;
+  padding:6px;margin-bottom:6px;
+  border-radius:6px;cursor:pointer;
+  font-size:12px;
+}
+
+.set img{width:100%;}
+
+.main{flex:1;padding:10px;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+}
+
+.card{
+  background:#1e293b;
+  padding:8px;
+  border-radius:10px;
+}
+
+.card img{width:100%;}
+
+button{
+  width:100%;
+  margin-top:5px;
+  padding:6px;
+  border:none;
+  border-radius:6px;
+  background:#22c55e;
+  color:white;
+}
+
+.global-btn{
+  width:100%;
+  padding:8px;
+  margin-bottom:10px;
+  background:#3b82f6;
+  border:none;
+  border-radius:6px;
+  color:white;
+}
+
+/* ADMIN PANEL */
+#adminPanel{
+  position:fixed;
+  top:0;
+  right:-400px;
+  width:400px;
+  height:100%;
+  background:#020617;
+  overflow:auto;
+  padding:10px;
+  transition:0.3s;
+  z-index:9999;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V7.3</div>
+  <div>🃏 Tienda Pokémon PRO V8</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -77,6 +123,13 @@ button{
 
 </div>
 
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <h2>🛠️ Panel Admin</h2>
+  <select id="adminSet" onchange="loadAdminSet()" style="width:100%;padding:5px;margin-bottom:10px;"></select>
+  <div id="adminCards"></div>
+</div>
+
 <script>
 
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
@@ -84,28 +137,21 @@ const API_CARD = "https://api.pokemontcg.io/v2/cards/";
 
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 let allCards = [];
-let loadedCards = {}; // cache por ID
+let loadedCards = {};
 
-/* ======================
-   🔐 ADMIN LOGIN
-====================== */
+/* ADMIN LOGIN */
 function loginAdmin(){
-
   const pass = prompt("Contraseña admin:");
-
   if(pass === "1234"){
-    alert("Modo admin activado");
-    console.log("ADMIN MODE");
+    document.getElementById("adminPanel").style.right = "0px";
+    loadAdminSets();
   }else{
     alert("Acceso denegado");
   }
 }
 
-/* ======================
-   LOAD SET MENU
-====================== */
+/* LOAD SET MENU */
 async function loadSets(){
-
   const res = await fetch(API_SETS);
   const json = await res.json();
 
@@ -116,7 +162,6 @@ async function loadSets(){
   const box = document.getElementById("sets");
 
   sets.forEach(s=>{
-
     const div = document.createElement("div");
     div.className = "set";
 
@@ -131,19 +176,15 @@ async function loadSets(){
   });
 }
 
-/* ======================
-   🔥 LOAD STOCK REAL
-====================== */
+/* LOAD STOCK */
 async function loadAllStock(){
 
   document.getElementById("title").innerText =
     "Todas las cartas en stock";
 
   let cards = [];
-
   const ids = Object.keys(inventory);
 
-  // 🔥 SI HAY INVENTARIO → cargar SOLO esas cartas
   if(ids.length > 0){
 
     for(const id of ids){
@@ -158,7 +199,6 @@ async function loadAllStock(){
       const inv = inventory[id];
 
       if(inv.stock && inv.qty > 0){
-
         cards.push({
           id:c.id,
           name:c.name,
@@ -169,33 +209,13 @@ async function loadAllStock(){
       }
     }
 
-  }else{
-    // modo demo
-    const res = await fetch(API_SETS);
-    const sets = await res.json();
-
-    const first = sets.data[0];
-
-    const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${first.id}`);
-    const j = await r.json();
-
-    cards = j.data.slice(0,20).map(c=>({
-      id:c.id,
-      name:c.name,
-      img:c.images.small,
-      set:first.name,
-      qty:1
-    }));
   }
 
   allCards = cards;
-
   renderGrouped(cards);
 }
 
-/* ======================
-   RENDER GROUPED
-====================== */
+/* RENDER GROUPED */
 function renderGrouped(cards){
 
   const grid = document.getElementById("grid");
@@ -213,7 +233,6 @@ function renderGrouped(cards){
     grid.innerHTML += `<h3 style="grid-column:1/-1">${set}</h3>`;
 
     grouped[set].forEach(c=>{
-
       grid.innerHTML += `
         <div class="card">
           <img src="${c.img}">
@@ -226,9 +245,7 @@ function renderGrouped(cards){
   });
 }
 
-/* ======================
-   LOAD SET
-====================== */
+/* FILTER SET */
 async function loadSet(setId, name){
 
   document.getElementById("title").innerText = name;
@@ -248,9 +265,7 @@ async function loadSet(setId, name){
   render(filtered);
 }
 
-/* ======================
-   RENDER
-====================== */
+/* RENDER */
 function render(cards){
 
   const grid = document.getElementById("grid");
@@ -268,9 +283,7 @@ function render(cards){
   });
 }
 
-/* ======================
-   SEARCH
-====================== */
+/* SEARCH */
 function searchCards(){
 
   const q = document.getElementById("search").value.toLowerCase();
@@ -294,15 +307,81 @@ function searchCards(){
 }
 
 function selectSearch(name){
-
   document.getElementById("search").value = "";
   document.getElementById("suggestions").innerHTML = "";
-
-  const filtered = allCards.filter(c=>c.name === name);
-  render(filtered);
+  render(allCards.filter(c=>c.name === name));
 }
 
-/* ====================== */
+/* ADMIN */
+async function loadAdminSets(){
+
+  const res = await fetch(API_SETS);
+  const json = await res.json();
+
+  document.getElementById("adminSet").innerHTML =
+    json.data.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+
+  loadAdminSet();
+}
+
+async function loadAdminSet(){
+
+  const setId = document.getElementById("adminSet").value;
+
+  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}`);
+  const json = await res.json();
+
+  const box = document.getElementById("adminCards");
+  box.innerHTML = "";
+
+  json.data.forEach(c=>{
+
+    const inv = inventory[c.id] || {stock:false, qty:1};
+
+    box.innerHTML += `
+      <div style="background:#1e293b;margin-bottom:8px;padding:6px;border-radius:6px;">
+        <img src="${c.images.small}" style="width:80px">
+        <div>${c.name}</div>
+
+        <label>
+          <input type="checkbox"
+            ${inv.stock ? "checked" : ""}
+            onchange="toggleStock('${c.id}')">
+          En stock
+        </label>
+
+        <input type="number" value="${inv.qty}"
+          onchange="changeQty('${c.id}', this.value)"
+          style="width:60px">
+      </div>
+    `;
+  });
+}
+
+function toggleStock(id){
+
+  if(!inventory[id]) inventory[id] = {stock:false, qty:1};
+
+  inventory[id].stock = !inventory[id].stock;
+
+  saveInventory();
+}
+
+function changeQty(id, qty){
+
+  if(!inventory[id]) inventory[id] = {stock:true, qty:1};
+
+  inventory[id].qty = parseInt(qty) || 1;
+
+  saveInventory();
+}
+
+function saveInventory(){
+  localStorage.setItem("inventory", JSON.stringify(inventory));
+  loadAllStock();
+}
+
+/* BUY */
 function buy(name){
   window.open(
     "https://wa.me/57TU_NUMERO?text=Quiero%20la%20carta%20"+encodeURIComponent(name)
