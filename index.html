@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda PRO v2</title>
+<title>Tienda PRO v3</title>
 
 <style>
 body{
@@ -51,6 +51,14 @@ body{
   display:block;
 }
 
+/* SUB SECCIONES */
+.submenu button{
+  margin-right:10px;
+  margin-bottom:10px;
+  padding:6px 10px;
+  cursor:pointer;
+}
+
 /* GRID */
 .grid{
   display:grid;
@@ -77,32 +85,28 @@ button.add{
   cursor:pointer;
 }
 
-/* 🛒 CARRO PRO HOVER */
+/* CARRITO PRO */
 .cart{
   position:fixed;
   right:0;
   top:0;
   height:100%;
+  width:60px;
   background:#0b1220;
   border-left:2px solid #1f2937;
   overflow:hidden;
-
-  width:60px;              /* COLAPSADO */
   transition:0.3s;
 }
 
-/* EXPANDE AL PASAR MOUSE */
 .cart:hover{
   width:300px;
 }
 
-/* HEADER DEL CARRITO */
 .cart-header{
   padding:10px;
   font-weight:bold;
   background:#111827;
   text-align:center;
-  white-space:nowrap;
 }
 
 .badge{
@@ -112,14 +116,11 @@ button.add{
   font-size:12px;
 }
 
-/* CONTENIDO */
 .cart-content{
   padding:10px;
   opacity:0;
-  transition:0.2s;
 }
 
-/* mostrar contenido cuando se expande */
 .cart:hover .cart-content{
   opacity:1;
 }
@@ -129,7 +130,6 @@ button.add{
   padding:8px;
   margin-bottom:8px;
   border-radius:8px;
-  font-size:13px;
 }
 </style>
 </head>
@@ -137,31 +137,52 @@ button.add{
 <body>
 
 <div class="banner">
-  🧩 Tienda PRO v2
+  🧩 Tienda PRO v3 - Coleccionables & Juegos
 </div>
 
+<!-- MENU ORDENADO -->
 <div class="menu">
   <button onclick="openTab('pokemon')">Pokémon</button>
+  <button onclick="openTab('juegos')">🎮 Juegos</button>
   <button onclick="openTab('jet')">Jet</button>
   <button onclick="openTab('monedas')">Monedas</button>
   <button onclick="openTab('billetes')">Billetes</button>
   <button onclick="openTab('albumes')">Álbumes</button>
   <button onclick="openTab('estampillas')">Estampillas</button>
   <button onclick="openTab('accesorios')">Accesorios</button>
-  <button onclick="openTab('juegos')">🎮 Juegos</button>
 </div>
 
-<!-- POKÉMON -->
+<!-- 🃏 POKÉMON -->
 <div id="pokemon" class="section active">
+
   <h2>Pokémon</h2>
 
-  <div class="grid" id="grid"></div>
+  <div class="submenu">
+    <button onclick="showPokemon('sellados')">📦 Sellados</button>
+    <button onclick="showPokemon('singles')">🃏 Cartas Individuales</button>
+  </div>
+
+  <!-- SELLADOS -->
+  <div id="sellados">
+    <h3>Sellados</h3>
+    <p>ETB, Booster Boxes, Packs sellados próximamente...</p>
+  </div>
+
+  <!-- SINGLES -->
+  <div id="singles" style="display:none;">
+    <h3>Cartas Individuales</h3>
+    <div id="grid" class="grid"></div>
+  </div>
+
 </div>
 
-<!-- JUEGOS -->
+<!-- 🎮 JUEGOS -->
 <div id="juegos" class="section">
+
   <h2>🎮 Juegos</h2>
+
   <div class="grid">
+
     <div class="card">
       <h3>Pokémon Scarlet</h3>
       <input type="number" placeholder="Precio">
@@ -173,10 +194,12 @@ button.add{
       <input type="number" placeholder="Precio">
       <button class="add" onclick="addManual('Zelda TOTK', this)">Agregar</button>
     </div>
+
   </div>
+
 </div>
 
-<!-- OTRAS -->
+<!-- OTROS -->
 <div id="jet" class="section"><h2>Jet</h2></div>
 <div id="monedas" class="section"><h2>Monedas</h2></div>
 <div id="billetes" class="section"><h2>Billetes</h2></div>
@@ -184,7 +207,7 @@ button.add{
 <div id="estampillas" class="section"><h2>Estampillas</h2></div>
 <div id="accesorios" class="section"><h2>Accesorios</h2></div>
 
-<!-- 🛒 CARRITO PRO -->
+<!-- 🛒 CARRITO -->
 <div class="cart">
 
   <div class="cart-header">
@@ -192,9 +215,7 @@ button.add{
   </div>
 
   <div class="cart-content" id="cartItems">
-    <p style="font-size:12px;color:#9ca3af;">
-      Pasa el mouse para ver el carrito
-    </p>
+    <p style="font-size:12px;color:#9ca3af;">Hover para ver carrito</p>
   </div>
 
 </div>
@@ -205,12 +226,22 @@ const API = "https://api.pokemontcg.io/v2/cards?pageSize=20";
 
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
+/* NAV */
 function openTab(tab){
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.getElementById(tab).classList.add("active");
 }
 
-/* 🛒 UPDATE CARRITO */
+/* POKEMON SUB */
+function showPokemon(section){
+
+  document.getElementById("sellados").style.display = "none";
+  document.getElementById("singles").style.display = "none";
+
+  document.getElementById(section).style.display = "block";
+}
+
+/* CART */
 function updateCart(){
 
   localStorage.setItem("cart", JSON.stringify(cart));
@@ -219,11 +250,6 @@ function updateCart(){
 
   const box = document.getElementById("cartItems");
   box.innerHTML = "";
-
-  if(cart.length === 0){
-    box.innerHTML = "<p style='font-size:12px;color:#9ca3af;'>Carrito vacío</p>";
-    return;
-  }
 
   cart.forEach(item => {
     box.innerHTML += `
@@ -235,7 +261,6 @@ function updateCart(){
   });
 }
 
-/* AGREGAR */
 function addToCart(name, price){
   cart.push({name, price});
   updateCart();
@@ -243,7 +268,6 @@ function addToCart(name, price){
 
 /* JUEGOS */
 function addManual(name, btn){
-
   const price = btn.parentElement.querySelector("input").value;
 
   if(!price || price <= 0){
@@ -254,7 +278,7 @@ function addManual(name, btn){
   addToCart(name, parseFloat(price));
 }
 
-/* POKÉMON API */
+/* API POKEMON */
 async function loadCards(){
 
   const res = await fetch(API);
