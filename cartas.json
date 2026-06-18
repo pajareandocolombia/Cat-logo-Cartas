@@ -1,0 +1,22 @@
+[
+  {
+    "id": "me2-001",
+    "name": "Bulbasaur",
+    "rarity": "Common",
+    "small": "https://images.scrydex.com/pokemon/me2-1/small",
+    "large": "https://images.scrydex.com/pokemon/me2-1/large",
+    "price": 3000,
+    "available": true,
+    "set": "ME2"
+  },
+  {
+    "id": "me2-158",
+    "name": "Charizard ex",
+    "rarity": "SIR",
+    "small": "https://images.scrydex.com/pokemon/me2-158/small",
+    "large": "https://images.scrydex.com/pokemon/me2-158/large",
+    "price": 120000,
+    "available": true,
+    "set": "ME2"
+  }
+]
