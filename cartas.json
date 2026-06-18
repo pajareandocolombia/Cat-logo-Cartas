@@ -10,9 +10,49 @@
     "set": "ME2"
   },
   {
+    "id": "me2-002",
+    "name": "Ivysaur",
+    "rarity": "Uncommon",
+    "small": "https://images.scrydex.com/pokemon/me2-2/small",
+    "large": "https://images.scrydex.com/pokemon/me2-2/large",
+    "price": 5000,
+    "available": false,
+    "set": "ME2"
+  },
+  {
+    "id": "me2-003",
+    "name": "Venusaur ex",
+    "rarity": "Ultra Rare",
+    "small": "https://images.scrydex.com/pokemon/me2-3/small",
+    "large": "https://images.scrydex.com/pokemon/me2-3/large",
+    "price": 85000,
+    "available": true,
+    "set": "ME2"
+  },
+  {
+    "id": "me2-004",
+    "name": "Charmander",
+    "rarity": "Common",
+    "small": "https://images.scrydex.com/pokemon/me2-4/small",
+    "large": "https://images.scrydex.com/pokemon/me2-4/large",
+    "price": 4000,
+    "available": true,
+    "set": "ME2"
+  },
+  {
+    "id": "me2-005",
+    "name": "Charmeleon",
+    "rarity": "Uncommon",
+    "small": "https://images.scrydex.com/pokemon/me2-5/small",
+    "large": "https://images.scrydex.com/pokemon/me2-5/large",
+    "price": 7000,
+    "available": false,
+    "set": "ME2"
+  },
+  {
     "id": "me2-158",
     "name": "Charizard ex",
-    "rarity": "SIR",
+    "rarity": "Special Illustration Rare",
     "small": "https://images.scrydex.com/pokemon/me2-158/small",
     "large": "https://images.scrydex.com/pokemon/me2-158/large",
     "price": 120000,
