@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V5</title>
+<title>Tienda Pokémon PRO V6</title>
 
 <style>
 body{
@@ -15,8 +15,23 @@ body{
 /* HEADER */
 header{
   background:#1e3a8a;
-  padding:12px;
+  padding:10px;
   text-align:center;
+}
+
+/* SEARCH BAR */
+.search{
+  padding:10px;
+  background:#111827;
+  display:flex;
+  gap:10px;
+}
+
+.search input{
+  flex:1;
+  padding:8px;
+  border-radius:6px;
+  border:none;
 }
 
 /* LAYOUT */
@@ -70,7 +85,7 @@ header{
   border-radius:6px;
 }
 
-/* BUTTONS */
+/* BUTTON */
 button{
   width:100%;
   margin-top:5px;
@@ -78,36 +93,27 @@ button{
   border:none;
   border-radius:6px;
   cursor:pointer;
-}
-
-.add{
   background:#22c55e;
   color:white;
 }
 
-/* CART */
-.cart{
-  position:fixed;
-  right:0;
-  top:0;
-  width:280px;
-  height:100%;
-  background:#0b1220;
-  padding:10px;
-  overflow:auto;
-  border-left:2px solid #1e3a8a;
-}
-
-.cart-item{
+/* AUTOCOMPLETE */
+.suggestions{
+  position:absolute;
   background:#1e293b;
-  padding:6px;
-  margin-bottom:5px;
-  border-radius:6px;
+  width:300px;
+  max-height:200px;
+  overflow:auto;
+  z-index:10;
 }
 
-.total{
-  font-weight:bold;
-  margin-top:10px;
+.suggestions div{
+  padding:6px;
+  cursor:pointer;
+}
+
+.suggestions div:hover{
+  background:#334155;
 }
 </style>
 </head>
@@ -115,8 +121,14 @@ button{
 <body>
 
 <header>
-🛒 Tienda Pokémon PRO V5 — Carrito Amazon
+🃏 Pokémon TCG PRO V6 — Smart Store
 </header>
+
+<!-- SEARCH -->
+<div class="search">
+  <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
+  <div id="suggestions" class="suggestions"></div>
+</div>
 
 <div class="container">
 
@@ -125,18 +137,10 @@ button{
 
 <!-- MAIN -->
 <div class="main">
-  <h3 id="title">Selecciona una colección</h3>
+  <h3 id="title">Todos los productos en stock</h3>
   <div class="grid" id="grid"></div>
 </div>
 
-</div>
-
-<!-- CART -->
-<div class="cart">
-  <h3>🛒 Carrito</h3>
-  <div id="cart"></div>
-  <div class="total" id="total"></div>
-  <button onclick="checkout()">Pagar por WhatsApp</button>
 </div>
 
 <script>
@@ -145,24 +149,24 @@ const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
 /* DATA */
-let cart = [];
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
+let allCards = [];
+let currentSet = null;
+let searchMode = false;
 
 /* ======================
-   SETS (ORDENADOS)
+   LOAD SETS (ORDERED)
 ====================== */
 async function loadSets(){
 
   const res = await fetch(API_SETS);
   const json = await res.json();
 
-  // 🔥 ORDEN POR MÁS RECIENTE
-  const sets = json.data.sort((a,b)=>{
-    return new Date(b.releaseDate) - new Date(a.releaseDate);
-  });
+  const sets = json.data.sort((a,b)=>
+    new Date(b.releaseDate) - new Date(a.releaseDate)
+  );
 
   const box = document.getElementById("sets");
-  box.innerHTML = "";
 
   sets.forEach(s=>{
 
@@ -174,39 +178,93 @@ async function loadSets(){
       <div>${s.name}</div>
     `;
 
-    div.onclick = ()=> loadCards(s.id, s.name);
+    div.onclick = ()=> loadSet(s.id, s.name);
 
     box.appendChild(div);
   });
 }
 
 /* ======================
-   CARDS
+   LOAD ALL STOCK INIT
 ====================== */
-async function loadCards(setId, name){
+async function loadAllStock(){
+
+  const res = await fetch(API_SETS);
+  const sets = await res.json();
+
+  let cards = [];
+
+  for(const s of sets.data){
+
+    const r = await fetch(API_CARDS + s.id);
+    const j = await r.json();
+
+    j.data.forEach(c=>{
+
+      const inv = inventory[c.id];
+
+      if(inv && inv.stock && inv.qty > 0){
+        cards.push({
+          id:c.id,
+          name:c.name,
+          img:c.images.small,
+          set:s.name,
+          qty:inv.qty
+        });
+      }
+    });
+  }
+
+  allCards = cards;
+  render(cards);
+}
+
+/* ======================
+   LOAD BY SET
+====================== */
+async function loadSet(id, name){
+
+  currentSet = id;
+  searchMode = false;
 
   document.getElementById("title").innerText = name;
 
-  const res = await fetch(API_CARDS + setId);
+  const res = await fetch(API_CARDS + id);
   const json = await res.json();
+
+  const cards = json.data
+    .filter(c=>{
+      const inv = inventory[c.id];
+      return inv && inv.stock && inv.qty > 0;
+    })
+    .map(c=>({
+      id:c.id,
+      name:c.name,
+      img:c.images.small,
+      qty:inventory[c.id].qty
+    }));
+
+  render(cards);
+}
+
+/* ======================
+   RENDER
+====================== */
+function render(cards){
 
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  json.data.forEach(c=>{
-
-    const inv = inventory[c.id];
-
-    if(!inv || !inv.stock || inv.qty <= 0) return;
+  cards.forEach(c=>{
 
     grid.innerHTML += `
       <div class="card">
-        <img src="${c.images.small}">
+        <img src="${c.img}">
         <div>${c.name}</div>
-        <div>Stock: ${inv.qty}</div>
+        <div>Stock: ${c.qty}</div>
 
-        <button class="add" onclick="addToCart('${c.name}', ${inv.price || 0})">
-          Agregar al carrito
+        <button onclick="buy('${c.name}')">
+          Comprar
         </button>
       </div>
     `;
@@ -214,70 +272,56 @@ async function loadCards(setId, name){
 }
 
 /* ======================
-   CART (AMAZON STYLE)
+   SEARCH + AUTOCOMPLETE
 ====================== */
-function addToCart(name, price){
+function searchCards(){
 
-  cart.push({name, price: price || 10000});
+  const q = document.getElementById("search").value.toLowerCase();
+  const box = document.getElementById("suggestions");
 
-  renderCart();
-}
-
-function renderCart(){
-
-  const box = document.getElementById("cart");
-  box.innerHTML = "";
-
-  let total = 0;
-
-  cart.forEach((c,i)=>{
-
-    total += c.price;
-
-    box.innerHTML += `
-      <div class="cart-item">
-        ${c.name}<br>
-        $${c.price}
-        <button onclick="removeItem(${i})">❌</button>
-      </div>
-    `;
-  });
-
-  document.getElementById("total").innerText =
-    "Total: $" + total;
-}
-
-function removeItem(i){
-  cart.splice(i,1);
-  renderCart();
-}
-
-/* ======================
-   CHECKOUT WHATSAPP
-====================== */
-function checkout(){
-
-  if(cart.length === 0){
-    alert("Carrito vacío");
+  if(q.length === 0){
+    box.innerHTML = "";
+    loadAllStock();
     return;
   }
 
-  let msg = "Hola quiero comprar:%0A";
+  searchMode = true;
 
-  let total = 0;
+  const matches = allCards.filter(c=>
+    c.name.toLowerCase().includes(q)
+  );
 
-  cart.forEach(c=>{
-    msg += "- " + c.name + " $" + c.price + "%0A";
-    total += c.price;
-  });
+  // autocomplete
+  box.innerHTML = matches.slice(0,6).map(m=>
+    `<div onclick="selectSearch('${m.name}')">${m.name}</div>`
+  ).join("");
 
-  msg += "%0ATotal: $" + total;
+  render(matches);
+}
 
-  window.open("https://wa.me/57TU_NUMERO?text=" + msg);
+/* SELECT SEARCH */
+function selectSearch(name){
+
+  document.getElementById("search").value = name;
+  document.getElementById("suggestions").innerHTML = "";
+
+  const filtered = allCards.filter(c=>c.name === name);
+  render(filtered);
+}
+
+/* ======================
+   BUY
+====================== */
+function buy(name){
+
+  window.open(
+    "https://wa.me/57TU_NUMERO?text=Quiero%20la%20carta%20"+encodeURIComponent(name)
+  );
 }
 
 /* INIT */
 loadSets();
+loadAllStock();
 
 </script>
 
