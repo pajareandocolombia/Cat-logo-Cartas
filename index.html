@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda PRO Coleccionables</title>
+<title>Tienda PRO v2</title>
 
 <style>
 body{
@@ -15,7 +15,7 @@ body{
 /* BANNER */
 .banner{
   background:linear-gradient(90deg,#1e3a8a,#0ea5e9);
-  padding:20px;
+  padding:18px;
   text-align:center;
   font-size:22px;
   font-weight:bold;
@@ -71,27 +71,57 @@ body{
 }
 
 button.add{
-  margin-top:5px;
   width:100%;
+  margin-top:5px;
   padding:6px;
   cursor:pointer;
 }
 
-/* CARRITO */
+/* 🛒 CARRO PRO HOVER */
 .cart{
   position:fixed;
   right:0;
   top:0;
-  width:280px;
   height:100%;
   background:#0b1220;
   border-left:2px solid #1f2937;
-  padding:10px;
-  overflow:auto;
+  overflow:hidden;
+
+  width:60px;              /* COLAPSADO */
+  transition:0.3s;
 }
 
-.cart h3{
-  margin-top:0;
+/* EXPANDE AL PASAR MOUSE */
+.cart:hover{
+  width:300px;
+}
+
+/* HEADER DEL CARRITO */
+.cart-header{
+  padding:10px;
+  font-weight:bold;
+  background:#111827;
+  text-align:center;
+  white-space:nowrap;
+}
+
+.badge{
+  background:red;
+  padding:2px 6px;
+  border-radius:10px;
+  font-size:12px;
+}
+
+/* CONTENIDO */
+.cart-content{
+  padding:10px;
+  opacity:0;
+  transition:0.2s;
+}
+
+/* mostrar contenido cuando se expande */
+.cart:hover .cart-content{
+  opacity:1;
 }
 
 .cart-item{
@@ -99,14 +129,7 @@ button.add{
   padding:8px;
   margin-bottom:8px;
   border-radius:8px;
-}
-
-/* BADGE */
-.badge{
-  background:red;
-  padding:2px 6px;
-  border-radius:10px;
-  font-size:12px;
+  font-size:13px;
 }
 </style>
 </head>
@@ -114,7 +137,7 @@ button.add{
 <body>
 
 <div class="banner">
-  🧩 Tienda PRO de Coleccionables
+  🧩 Tienda PRO v2
 </div>
 
 <div class="menu">
@@ -130,43 +153,26 @@ button.add{
 
 <!-- POKÉMON -->
 <div id="pokemon" class="section active">
-
   <h2>Pokémon</h2>
 
-  <button onclick="toggle('sellados')">📦 Sellados</button>
-  <button onclick="toggle('singles')">🃏 Singles</button>
-
-  <div id="sellados" style="display:none;">
-    <h3>Sellados</h3>
-    <p>ETB, Booster Boxes, Packs, etc.</p>
-  </div>
-
-  <div id="singles">
-    <h3>Cartas Singles</h3>
-    <div id="grid" class="grid"></div>
-  </div>
-
+  <div class="grid" id="grid"></div>
 </div>
 
 <!-- JUEGOS -->
 <div id="juegos" class="section">
   <h2>🎮 Juegos</h2>
   <div class="grid">
-
     <div class="card">
       <h3>Pokémon Scarlet</h3>
-      <p>Juego Nintendo Switch</p>
       <input type="number" placeholder="Precio">
-      <button class="add" onclick="addManual('Pokémon Scarlet')">Agregar</button>
+      <button class="add" onclick="addManual('Pokémon Scarlet', this)">Agregar</button>
     </div>
 
     <div class="card">
       <h3>Zelda TOTK</h3>
-      <p>Aventura Nintendo Switch</p>
       <input type="number" placeholder="Precio">
-      <button class="add" onclick="addManual('Zelda TOTK')">Agregar</button>
+      <button class="add" onclick="addManual('Zelda TOTK', this)">Agregar</button>
     </div>
-
   </div>
 </div>
 
@@ -178,10 +184,19 @@ button.add{
 <div id="estampillas" class="section"><h2>Estampillas</h2></div>
 <div id="accesorios" class="section"><h2>Accesorios</h2></div>
 
-<!-- CARRITO -->
+<!-- 🛒 CARRITO PRO -->
 <div class="cart">
-  <h3>🛒 Carrito <span class="badge" id="count">0</span></h3>
-  <div id="cartItems"></div>
+
+  <div class="cart-header">
+    🛒 <span class="badge" id="count">0</span>
+  </div>
+
+  <div class="cart-content" id="cartItems">
+    <p style="font-size:12px;color:#9ca3af;">
+      Pasa el mouse para ver el carrito
+    </p>
+  </div>
+
 </div>
 
 <script>
@@ -195,13 +210,9 @@ function openTab(tab){
   document.getElementById(tab).classList.add("active");
 }
 
-function toggle(id){
-  const el = document.getElementById(id);
-  el.style.display = el.style.display === "none" ? "block" : "none";
-}
-
-/* CARRITO */
+/* 🛒 UPDATE CARRITO */
 function updateCart(){
+
   localStorage.setItem("cart", JSON.stringify(cart));
 
   document.getElementById("count").innerText = cart.length;
@@ -209,7 +220,12 @@ function updateCart(){
   const box = document.getElementById("cartItems");
   box.innerHTML = "";
 
-  cart.forEach((item, i) => {
+  if(cart.length === 0){
+    box.innerHTML = "<p style='font-size:12px;color:#9ca3af;'>Carrito vacío</p>";
+    return;
+  }
+
+  cart.forEach(item => {
     box.innerHTML += `
       <div class="cart-item">
         <b>${item.name}</b><br>
@@ -225,9 +241,10 @@ function addToCart(name, price){
   updateCart();
 }
 
-/* JUEGOS MANUAL */
-function addManual(name){
-  const price = event.target.parentElement.querySelector("input").value;
+/* JUEGOS */
+function addManual(name, btn){
+
+  const price = btn.parentElement.querySelector("input").value;
 
   if(!price || price <= 0){
     alert("Precio inválido");
@@ -253,8 +270,6 @@ async function loadCards(){
     div.innerHTML = `
       <img src="${card.images.small}">
       <h4>${card.name}</h4>
-      <p>${card.rarity || "N/A"}</p>
-
       <input type="number" placeholder="Precio" id="p_${card.id}">
       <button class="add" id="b_${card.id}">Agregar</button>
     `;
@@ -262,6 +277,7 @@ async function loadCards(){
     grid.appendChild(div);
 
     document.getElementById(`b_${card.id}`).addEventListener("click", () => {
+
       const price = document.getElementById("p_" + card.id).value;
 
       if(!price || price <= 0){
