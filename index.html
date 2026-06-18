@@ -51,6 +51,24 @@ input, select{
   color:#22c55e;
   font-weight:bold;
 }
+
+button{
+  margin-top:5px;
+  padding:6px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.cart{
+  position:fixed;
+  top:10px;
+  right:10px;
+  background:#1e293b;
+  padding:10px;
+  border-radius:10px;
+}
+
 </style>
 </head>
 
@@ -65,6 +83,11 @@ input, select{
   </select>
 </div>
 
+<div class="cart">
+  🛒 <span id="cartCount">0</span>
+  <button onclick="checkout()">Comprar</button>
+</div>
+
 <div class="grid" id="grid"></div>
 
 <div id="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;">
@@ -76,21 +99,26 @@ input, select{
 const API_BASE = "https://api.pokemontcg.io/v2";
 
 let allCards = [];
-let sets = [];
+let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+let prices = JSON.parse(localStorage.getItem("prices") || "{}");
 
-function formatPrice(){
-  return "$" + Math.floor(Math.random()*100000);
+updateCartUI();
+
+function formatPrice(v){
+  return new Intl.NumberFormat('es-CO',{
+    style:'currency',
+    currency:'COP',
+    minimumFractionDigits:0
+  }).format(v);
 }
 
 async function loadSets(){
   const res = await fetch(API_BASE + "/sets");
   const json = await res.json();
 
-  sets = json.data;
-
   const select = document.getElementById("setFilter");
 
-  sets.forEach(s=>{
+  json.data.forEach(s=>{
     const option = document.createElement("option");
     option.value = s.id;
     option.textContent = s.name;
@@ -117,22 +145,74 @@ async function loadCards(setId=""){
 function renderCards(){
 
   const search = document.getElementById("search").value.toLowerCase();
-
   const grid = document.getElementById("grid");
 
   const filtered = allCards.filter(c =>
     c.name.toLowerCase().includes(search)
   );
 
-  grid.innerHTML = filtered.map(c=>`
+  grid.innerHTML = filtered.map(c=>{
+
+    const price = prices[c.id] || 0;
+
+    return `
     <div class="card">
       <img src="${c.images.small}" onclick="openImg('${c.images.large}')">
       <h4>${c.name}</h4>
       <p>${c.rarity || "N/A"}</p>
-      <div class="price">${formatPrice()}</div>
-    </div>
-  `).join("");
 
+      <input type="number" placeholder="Precio" value="${price}"
+        onchange="setPrice('${c.id}', this.value)">
+
+      <div class="price">${price ? formatPrice(price) : ""}</div>
+
+      <button onclick="addToCart('${c.id}','${c.name}',${price})">
+        Agregar
+      </button>
+    </div>
+    `;
+  }).join("");
+
+}
+
+function setPrice(id, value){
+  prices[id] = Number(value);
+  localStorage.setItem("prices", JSON.stringify(prices));
+  renderCards();
+}
+
+function addToCart(id,name,price){
+
+  if(!price){
+    alert("Pon un precio primero");
+    return;
+  }
+
+  cart.push({id,name,price});
+  localStorage.setItem("cart", JSON.stringify(cart));
+  updateCartUI();
+}
+
+function updateCartUI(){
+  document.getElementById("cartCount").textContent = cart.length;
+}
+
+function checkout(){
+
+  if(cart.length === 0){
+    alert("Carrito vacío");
+    return;
+  }
+
+  let msg = "Hola, quiero comprar:\n";
+
+  cart.forEach(c=>{
+    msg += `- ${c.name} ${formatPrice(c.price)}\n`;
+  });
+
+  const url = "https://wa.me/57TU_NUMERO?text=" + encodeURIComponent(msg);
+
+  window.open(url, "_blank");
 }
 
 function openImg(src){
