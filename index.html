@@ -133,8 +133,25 @@ button{
 <div class="container">
 
 <!-- SETS -->
-<div class="sets" id="sets"></div>
+<div class="sets" id="sets">
 
+  <!-- 🟢 BOTÓN NUEVO (ARRIBA DE COLECCIONES) -->
+  <div style="padding:6px; margin-bottom:10px;">
+    <button onclick="loadAllStock()" style="
+      width:100%;
+      padding:8px;
+      background:#3b82f6;
+      border:none;
+      color:white;
+      border-radius:6px;
+      cursor:pointer;
+      font-weight:bold;
+    ">
+      🟢 Ver todas las cartas en stock
+    </button>
+  </div>
+
+</div>
 <!-- MAIN -->
 <div class="main">
   <h3 id="title">Cartas en stock</h3>
@@ -188,6 +205,47 @@ async function loadSets(){
    LOAD ALL STOCK (DEFAULT VIEW)
 ====================== */
 async function loadAllStock(){
+
+  currentSet = null;
+
+  document.getElementById("title").innerText =
+    "Cartas en stock (vista global)";
+
+  const resSets = await fetch(API_SETS);
+  const sets = await resSets.json();
+
+  let cards = [];
+
+  const ordered = sets.data.sort((a,b)=>
+    new Date(b.releaseDate) - new Date(a.releaseDate)
+  );
+
+  for(const s of ordered){
+
+    const res = await fetch(API_CARDS + s.id);
+    const json = await res.json();
+
+    json.data.forEach(c=>{
+
+      const inv = inventory[c.id];
+
+      if(inv && inv.stock && inv.qty > 0){
+
+        cards.push({
+          id:c.id,
+          name:c.name,
+          img:c.images.small,
+          set:s.name,
+          qty:inv.qty
+        });
+      }
+    });
+  }
+
+  allCards = cards;
+
+  renderGrouped(cards);
+}
 
   const resSets = await fetch(API_SETS);
   const sets = await resSets.json();
