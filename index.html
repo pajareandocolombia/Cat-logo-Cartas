@@ -1,176 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tienda Pokémon</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#0f172a;
+  color:white;
+}
+
+h1{text-align:center;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:15px;
+  padding:20px;
+}
+
+.card{
+  background:#1e293b;
+  padding:10px;
+  border-radius:12px;
+  text-align:center;
+}
+
+.card img{
+  width:100%;
+}
+
+button{
+  margin-top:5px;
+  padding:5px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Tienda Pokémon</h1>
+
+<div id="grid" class="grid"></div>
+
 <script>
 
-const API_BASE = "https://api.pokemontcg.io/v2";
+const API = "https://api.pokemontcg.io/v2/cards?pageSize=20";
 
-let allCards = [];
-let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-let prices = JSON.parse(localStorage.getItem("prices") || "{}");
-let stock = JSON.parse(localStorage.getItem("stock") || "{}");
+let cart = [];
 
-function formatPrice(v){
-  return new Intl.NumberFormat('es-CO',{
-    style:'currency',
-    currency:'COP',
-    minimumFractionDigits:0
-  }).format(v);
-}
+async function load(){
 
-function updateCartUI(){
-  document.getElementById("cartCount").textContent = cart.length;
-}
+  try {
 
-function toggleStock(id, value){
-  stock[id] = value;
-  localStorage.setItem("stock", JSON.stringify(stock));
-  renderCards();
-}
+    const res = await fetch(API);
+    const json = await res.json();
 
-function isAvailable(id){
-  return stock[id] !== false;
-}
+    const grid = document.getElementById("grid");
 
-async function loadSets(){
-  const res = await fetch(API_BASE + "/sets");
-  const json = await res.json();
+    grid.innerHTML = json.data.map(c => `
+      <div class="card">
+        <img src="${c.images.small}">
+        <h4>${c.name}</h4>
+        <p>${c.rarity || "N/A"}</p>
 
-  const select = document.getElementById("setFilter");
+        <input type="number" placeholder="Precio" id="p_${c.id}">
 
-  json.data.forEach(s=>{
-    const option = document.createElement("option");
-    option.value = s.id;
-    option.textContent = s.name;
-    select.appendChild(option);
-  });
-}
+        <button onclick="add('${c.id}','${c.name}')">
+          Agregar
+        </button>
+      </div>
+    `).join("");
 
-async function loadCards(setId=""){
-  
-  let url = API_BASE + "/cards?pageSize=40";
-
-  if(setId){
-    url += `&q=set.id:${setId}`;
+  } catch(e){
+    document.body.innerHTML = "<h2>Error cargando datos</h2>";
+    console.error(e);
   }
 
-  const res = await fetch(url);
-  const json = await res.json();
-
-  allCards = json.data;
-
-  renderCards();
 }
 
-function renderCards(){
+function add(id,name){
 
-  const search = document.getElementById("search").value.toLowerCase();
-  const grid = document.getElementById("grid");
-
-  if(!grid) return;
-
-  const filtered = allCards.filter(c =>
-    isAvailable(c.id) &&
-    c.name.toLowerCase().includes(search)
-  );
-
-  grid.innerHTML = filtered.map(c=>{
-
-    const price = prices[c.id] || "";
-
-    return `
-    <div class="card">
-      <img src="${c.images.small}" onclick="openImg('${c.images.large}')">
-      <h4>${c.name}</h4>
-      <p>${c.rarity || "N/A"}</p>
-
-      <input type="number" placeholder="Precio" value="${price}"
-        onchange="setPrice('${c.id}', this.value)">
-
-      <div class="price">${price ? formatPrice(price) : ""}</div>
-
-      <label>
-        <input type="checkbox" ${isAvailable(c.id) ? "checked" : ""}
-          onchange="toggleStock('${c.id}', this.checked)">
-        Disponible
-      </label>
-
-      <button onclick="addToCart('${c.id}','${c.name}',${price || 0})">
-        Agregar
-      </button>
-
-      <button onclick="buyNow('${c.name}', ${price || 0})">
-        Comprar ahora
-      </button>
-    </div>
-    `;
-  }).join("");
-
-}
-
-function setPrice(id, value){
-  prices[id] = Number(value);
-  localStorage.setItem("prices", JSON.stringify(prices));
-  renderCards();
-}
-
-function addToCart(id,name,price){
+  const price = document.getElementById("p_"+id).value;
 
   if(!price){
-    alert("Pon un precio primero");
+    alert("Pon precio primero");
     return;
   }
 
-  cart.push({id,name,price});
-  localStorage.setItem("cart", JSON.stringify(cart));
-  updateCartUI();
+  cart.push({name,price});
+
+  alert("Agregado: " + name);
 }
 
-function buyNow(name, price){
-
-  if(!price){
-    alert("Pon un precio primero");
-    return;
-  }
-
-  const msg = `Hola, quiero esta carta: ${name} ${formatPrice(price)}`;
-  window.open("https://wa.me/573001234567?text=" + encodeURIComponent(msg));
-}
-
-function checkout(){
-
-  if(cart.length === 0){
-    alert("Carrito vacío");
-    return;
-  }
-
-  let msg = "Hola, quiero comprar:%0A";
-
-  cart.forEach(c=>{
-    msg += `- ${c.name} ${formatPrice(c.price)}%0A`;
-  });
-
-  window.open("https://wa.me/573001234567?text=" + msg, "_blank");
-}
-
-function openImg(src){
-  document.getElementById("modal").style.display="flex";
-  document.getElementById("modalImg").src = src;
-}
-
-document.addEventListener("click",e=>{
-  if(e.target.id==="modal"){
-    document.getElementById("modal").style.display="none";
-  }
-});
-
-document.getElementById("search").addEventListener("input", renderCards);
-
-document.getElementById("setFilter").addEventListener("change", (e)=>{
-  loadCards(e.target.value);
-});
-
-document.addEventListener("DOMContentLoaded", async ()=>{
-  updateCartUI();
-  await loadSets();
-  await loadCards();
-});
+document.addEventListener("DOMContentLoaded", load);
 
 </script>
+
+</body>
+</html>
