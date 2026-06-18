@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda PRO v2</title>
+<title>Tienda Pokémon PRO Catalogo</title>
 
 <style>
 body{
   font-family:Arial;
+  margin:0;
   background:#0f172a;
   color:white;
-  margin:0;
 }
 
 /* HEADER */
@@ -17,207 +17,194 @@ header{
   background:#1e3a8a;
   padding:15px;
   text-align:center;
-  font-size:20px;
 }
 
-/* MENU */
-.menu{
+/* CONTAINER */
+.container{
   display:flex;
-  justify-content:center;
-  gap:10px;
-  padding:10px;
-  background:#111827;
 }
 
-.menu button{
-  padding:8px;
+/* LEFT PANEL (SETS) */
+.sets{
+  width:25%;
+  height:100vh;
+  overflow:auto;
+  background:#111827;
+  padding:10px;
+}
+
+.set{
   cursor:pointer;
+  margin-bottom:10px;
+  background:#1e293b;
+  padding:8px;
+  border-radius:8px;
+}
+
+.set img{
+  width:100%;
+  border-radius:6px;
+}
+
+/* MAIN */
+.main{
+  width:75%;
+  padding:10px;
 }
 
 /* GRID */
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-  gap:15px;
-  padding:20px;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
 }
 
 .card{
   background:#1e293b;
-  padding:10px;
+  padding:8px;
   border-radius:10px;
 }
 
 .card img{
   width:100%;
-  border-radius:8px;
 }
 
-/* CART */
-.cart{
-  position:fixed;
-  right:0;
-  top:0;
-  width:250px;
-  height:100%;
-  background:#0b1220;
-  padding:10px;
-  overflow:auto;
+/* ADMIN MODE */
+.admin{
+  border:2px solid #f59e0b;
 }
 
-/* ADMIN */
-#adminPanel{
-  position:fixed;
-  top:20px;
-  right:270px;
-  background:#111827;
-  padding:10px;
-  border:1px solid #3b82f6;
-  display:none;
+button{
+  width:100%;
+  margin-top:5px;
+  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<header>🃏 Tienda PRO v2</header>
+<header>
+🧩 Pokémon TCG PRO Catalog
+</header>
 
-<div class="menu">
-  <button onclick="filter('all')">Todos</button>
-  <button onclick="filter('pokemon')">Pokémon</button>
-  <button onclick="filter('juegos')">Juegos</button>
+<div class="container">
+
+<!-- SETS -->
+<div class="sets" id="sets"></div>
+
+<!-- CARDS -->
+<div class="main">
+  <h3 id="title">Selecciona una colección</h3>
+  <div id="grid" class="grid"></div>
 </div>
 
-<div id="grid" class="grid"></div>
-
-<!-- CART -->
-<div class="cart">
-  <h3>🛒 Carrito</h3>
-  <div id="cartItems"></div>
-</div>
-
-<!-- ADMIN -->
-<div id="adminPanel">
-<h3>Admin</h3>
-<input id="name" placeholder="Nombre"><br><br>
-<input id="price" placeholder="Precio"><br><br>
-<input id="img" placeholder="URL imagen"><br><br>
-<select id="cat">
-  <option value="pokemon">Pokémon</option>
-  <option value="juegos">Juegos</option>
-</select><br><br>
-
-<button onclick="addCard()">Agregar</button>
 </div>
 
 <script>
 
-let isAdmin = false;
+const API_SETS = "https://api.pokemontcg.io/v2/sets";
+const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
-let products = JSON.parse(localStorage.getItem("products")) || [
-  {
-    id:1,
-    name:"Charizard EX",
-    price:50000,
-    img:"https://images.pokemontcg.io/base1/4.png",
-    cat:"pokemon"
-  },
-  {
-    id:2,
-    name:"Zelda TOTK",
-    price:60000,
-    img:"https://upload.wikimedia.org/wikipedia/en/1/1a/The_Legend_of_Zelda_Tears_of_the_Kingdom_cover.jpg",
-    cat:"juegos"
-  }
-];
+let admin = false;
 
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 
-let currentFilter = "all";
-
-/* RENDER */
-function render(){
-
-  localStorage.setItem("products", JSON.stringify(products));
-  localStorage.setItem("cart", JSON.stringify(cart));
-
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  products.forEach(p=>{
-
-    if(currentFilter !== "all" && p.cat !== currentFilter) return;
-
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${p.img}">
-        <h3>${p.name}</h3>
-        <p>$${p.price}</p>
-
-        <button onclick="buy(${p.id})">Agregar al carrito</button>
-
-        ${isAdmin ? `<button onclick="remove(${p.id})">Eliminar</button>` : ""}
-      </div>
-    `;
-  });
-
-  renderCart();
-}
-
-/* CART */
-function buy(id){
-  let p = products.find(x=>x.id===id);
-  cart.push(p);
-  render();
-}
-
-function renderCart(){
-  const box = document.getElementById("cartItems");
-  box.innerHTML = "";
-
-  cart.forEach(c=>{
-    box.innerHTML += `<p>${c.name} - $${c.price}</p>`;
-  });
-}
-
-/* FILTER */
-function filter(cat){
-  currentFilter = cat;
-  render();
-}
-
-/* ADMIN */
+/* LOGIN ADMIN */
 document.addEventListener("keydown", e=>{
   if(e.ctrlKey && e.shiftKey && e.key==="A"){
-    let pass = prompt("Admin password:");
+    let pass = prompt("Admin:");
     if(pass==="1234"){
-      isAdmin = true;
-      document.getElementById("adminPanel").style.display="block";
-      alert("Modo admin activado");
-      render();
+      admin = true;
+      alert("Admin activado");
     }
   }
 });
 
-function addCard(){
+/* LOAD SETS */
+async function loadSets(){
 
-  products.push({
-    id:Date.now(),
-    name:document.getElementById("name").value,
-    price:+document.getElementById("price").value,
-    img:document.getElementById("img").value,
-    cat:document.getElementById("cat").value
+  const res = await fetch(API_SETS);
+  const json = await res.json();
+
+  const sets = json.data;
+
+  const box = document.getElementById("sets");
+  box.innerHTML = "";
+
+  sets.forEach(s=>{
+
+    box.innerHTML += `
+      <div class="set" onclick="loadCards('${s.id}','${s.name}')">
+        <img src="${s.images.logo}">
+        <strong>${s.name}</strong>
+      </div>
+    `;
+  });
+}
+
+/* LOAD CARDS */
+async function loadCards(setId, name){
+
+  document.getElementById("title").innerText = name;
+
+  const res = await fetch(API_CARDS + setId);
+  const json = await res.json();
+
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  json.data.forEach(c=>{
+
+    const id = c.id;
+
+    if(inventory[id] === undefined){
+      inventory[id] = {stock:0};
+    }
+
+    const stock = inventory[id].stock;
+
+    grid.innerHTML += `
+      <div class="card ${admin ? 'admin':''}">
+        <img src="${c.images.small}">
+        <p>${c.name}</p>
+        <p>Stock: ${stock}</p>
+
+        ${admin ? `
+          <button onclick="addStock('${id}')">+ Stock</button>
+          <button onclick="removeStock('${id}')">- Stock</button>
+        ` : ""}
+      </div>
+    `;
   });
 
-  render();
+  save();
 }
 
-function remove(id){
-  products = products.filter(x=>x.id!==id);
-  render();
+/* STOCK */
+function addStock(id){
+  inventory[id].stock++;
+  renderCurrent();
 }
 
-render();
+function removeStock(id){
+  if(inventory[id].stock>0)
+    inventory[id].stock--;
+  renderCurrent();
+}
+
+function renderCurrent(){
+  save();
+  location.reload();
+}
+
+/* SAVE */
+function save(){
+  localStorage.setItem("inventory", JSON.stringify(inventory));
+}
+
+/* INIT */
+loadSets();
 
 </script>
 
