@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO Catalogo</title>
+<title>Tienda PRO v3.1</title>
 
 <style>
 body{
@@ -15,58 +15,69 @@ body{
 /* HEADER */
 header{
   background:#1e3a8a;
-  padding:15px;
+  padding:12px;
   text-align:center;
 }
 
-/* CONTAINER */
+/* LAYOUT */
 .container{
   display:flex;
 }
 
-/* LEFT PANEL (SETS) */
+/* SIDEBAR (COLLECTIONS COMPACTA) */
 .sets{
-  width:25%;
+  width:200px;
   height:100vh;
   overflow:auto;
   background:#111827;
-  padding:10px;
+  padding:8px;
+  transition:0.3s;
 }
 
 .set{
-  cursor:pointer;
-  margin-bottom:10px;
   background:#1e293b;
-  padding:8px;
-  border-radius:8px;
+  padding:6px;
+  margin-bottom:6px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:12px;
 }
 
 .set img{
   width:100%;
-  border-radius:6px;
+  border-radius:4px;
 }
 
 /* MAIN */
 .main{
-  width:75%;
+  flex:1;
   padding:10px;
 }
 
-/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:10px;
 }
 
+/* CARD */
 .card{
   background:#1e293b;
   padding:8px;
   border-radius:10px;
+  font-size:13px;
 }
 
 .card img{
   width:100%;
+}
+
+/* STOCK BUTTONS */
+button{
+  width:100%;
+  margin-top:5px;
+  padding:5px;
+  cursor:pointer;
 }
 
 /* ADMIN MODE */
@@ -74,10 +85,18 @@ header{
   border:2px solid #f59e0b;
 }
 
-button{
-  width:100%;
-  margin-top:5px;
+/* TOGGLE PANEL */
+.toggle{
+  background:#111827;
+  padding:5px;
+  text-align:center;
   cursor:pointer;
+  font-size:12px;
+  border-bottom:1px solid #334155;
+}
+
+.hidden{
+  display:none;
 }
 </style>
 </head>
@@ -85,18 +104,20 @@ button{
 <body>
 
 <header>
-🧩 Pokémon TCG PRO Catalog
+🧩 Pokémon TCG PRO v3.1
 </header>
 
 <div class="container">
 
-<!-- SETS -->
-<div class="sets" id="sets"></div>
+<!-- SIDEBAR COLLECTIONS -->
+<div class="sets" id="sets">
+  <div class="toggle" onclick="toggleSets()">📂 Colecciones</div>
+</div>
 
-<!-- CARDS -->
+<!-- MAIN -->
 <div class="main">
   <h3 id="title">Selecciona una colección</h3>
-  <div id="grid" class="grid"></div>
+  <div class="grid" id="grid"></div>
 </div>
 
 </div>
@@ -107,13 +128,13 @@ const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
 let admin = false;
-
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
+let setsVisible = true;
 
-/* LOGIN ADMIN */
+/* ADMIN LOGIN */
 document.addEventListener("keydown", e=>{
   if(e.ctrlKey && e.shiftKey && e.key==="A"){
-    let pass = prompt("Admin:");
+    let pass = prompt("Admin password:");
     if(pass==="1234"){
       admin = true;
       alert("Admin activado");
@@ -121,25 +142,34 @@ document.addEventListener("keydown", e=>{
   }
 });
 
+/* TOGGLE SIDEBAR */
+function toggleSets(){
+  const box = document.getElementById("sets");
+  setsVisible = !setsVisible;
+  box.style.width = setsVisible ? "200px" : "40px";
+}
+
 /* LOAD SETS */
 async function loadSets(){
 
   const res = await fetch(API_SETS);
   const json = await res.json();
 
-  const sets = json.data;
-
   const box = document.getElementById("sets");
-  box.innerHTML = "";
 
-  sets.forEach(s=>{
+  json.data.forEach(s=>{
 
-    box.innerHTML += `
-      <div class="set" onclick="loadCards('${s.id}','${s.name}')">
-        <img src="${s.images.logo}">
-        <strong>${s.name}</strong>
-      </div>
+    const div = document.createElement("div");
+    div.className = "set";
+
+    div.innerHTML = `
+      <img src="${s.images.logo}">
+      <div>${s.name}</div>
     `;
+
+    div.onclick = ()=> loadCards(s.id, s.name);
+
+    box.appendChild(div);
   });
 }
 
@@ -156,23 +186,28 @@ async function loadCards(setId, name){
 
   json.data.forEach(c=>{
 
-    const id = c.id;
-
-    if(inventory[id] === undefined){
-      inventory[id] = {stock:0};
+    if(!inventory[c.id]){
+      inventory[c.id] = {
+        stock:false,
+        qty:0
+      };
     }
 
-    const stock = inventory[id].stock;
+    const item = inventory[c.id];
 
     grid.innerHTML += `
-      <div class="card ${admin ? 'admin':''}">
+      <div class="card ${admin ? "admin":""}">
         <img src="${c.images.small}">
-        <p>${c.name}</p>
-        <p>Stock: ${stock}</p>
+        <div>${c.name}</div>
+        <div>Stock: ${item.stock ? item.qty : 0}</div>
 
         ${admin ? `
-          <button onclick="addStock('${id}')">+ Stock</button>
-          <button onclick="removeStock('${id}')">- Stock</button>
+          <button onclick="toggleStock('${c.id}')">
+            ${item.stock ? "❌ Desactivar" : "✔ Activar"}
+          </button>
+
+          <button onclick="addQty('${c.id}')">+ Stock</button>
+          <button onclick="removeQty('${c.id}')">- Stock</button>
         ` : ""}
       </div>
     `;
@@ -181,26 +216,45 @@ async function loadCards(setId, name){
   save();
 }
 
-/* STOCK */
-function addStock(id){
-  inventory[id].stock++;
-  renderCurrent();
-}
+/* STOCK CONTROL */
+function toggleStock(id){
+  inventory[id].stock = !inventory[id].stock;
 
-function removeStock(id){
-  if(inventory[id].stock>0)
-    inventory[id].stock--;
-  renderCurrent();
-}
+  if(inventory[id].stock && inventory[id].qty === 0){
+    inventory[id].qty = 1;
+  }
 
-function renderCurrent(){
   save();
-  location.reload();
+  reload();
+}
+
+function addQty(id){
+  inventory[id].qty++;
+  save();
+  reload();
+}
+
+function removeQty(id){
+  if(inventory[id].qty > 0){
+    inventory[id].qty--;
+  }
+
+  if(inventory[id].qty === 0){
+    inventory[id].stock = false;
+  }
+
+  save();
+  reload();
 }
 
 /* SAVE */
 function save(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
+}
+
+/* RELOAD */
+function reload(){
+  location.reload();
 }
 
 /* INIT */
