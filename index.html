@@ -1,57 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Tienda Pokémon</title>
-
-<style>
-body{
-  font-family: Arial;
-  background:#0f172a;
-  color:white;
-}
-
-h1{text-align:center;}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
-  gap:15px;
-  padding:20px;
-}
-
-.card{
-  background:#1e293b;
-  padding:10px;
-  border-radius:12px;
-  text-align:center;
-}
-
-.card img{
-  width:100%;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.price{
-  color:#22c55e;
-  font-weight:bold;
-}
-</style>
-</head>
-
-<body>
-
-<h1>Cartas Disponibles</h1>
-<div class="grid" id="grid"></div>
-
-<div id="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;">
-<img id="modalImg" style="max-height:90%">
-</div>
-
 <script>
-
-const API_URL = "https://script.google.com/macros/s/AKfycbxbIabbxw0lkpQGyJtH0s0yfQWvcXAZLXgPh3AQavD7cvb0Z_n-xz9PY0h9pB7AH65F/exec";
 
 function formatPrice(v){
   return new Intl.NumberFormat('es-CO',{
@@ -60,8 +7,6 @@ function formatPrice(v){
     minimumFractionDigits:0
   }).format(v);
 }
-
-async function load(){
 
 async function load(){
 
@@ -76,11 +21,12 @@ async function load(){
       <img src="${c.small}" onclick="openImg('${c.large}')">
       <h4>${c.name}</h4>
       <p>${c.rarity}</p>
-      <div class="price">$${c.price}</div>
+      <div class="price">${formatPrice(c.price)}</div>
     </div>
   `).join("");
 
 }
+
 function openImg(src){
   modal.style.display="flex";
   modalImg.src = src;
@@ -95,6 +41,3 @@ document.addEventListener("click",e=>{
 load();
 
 </script>
-
-</body>
-</html>
