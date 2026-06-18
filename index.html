@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon</title>
+<title>Tienda Pokémon PRO</title>
 
 <style>
 body{
@@ -12,6 +12,20 @@ body{
 }
 
 h1{text-align:center;}
+
+.controls{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin:20px;
+  flex-wrap:wrap;
+}
+
+input, select{
+  padding:8px;
+  border-radius:6px;
+  border:none;
+}
 
 .grid{
   display:grid;
@@ -42,7 +56,15 @@ h1{text-align:center;}
 
 <body>
 
-<h1>Cartas Pokémon</h1>
+<h1>Tienda Pokémon PRO</h1>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Buscar carta...">
+  <select id="setFilter">
+    <option value="">Todas las colecciones</option>
+  </select>
+</div>
+
 <div class="grid" id="grid"></div>
 
 <div id="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;">
@@ -51,22 +73,58 @@ h1{text-align:center;}
 
 <script>
 
-const API_URL = "https://api.pokemontcg.io/v2/cards?q=set.id:sv3&pageSize=20";
+const API_BASE = "https://api.pokemontcg.io/v2";
+
+let allCards = [];
+let sets = [];
 
 function formatPrice(){
   return "$" + Math.floor(Math.random()*100000);
 }
 
-async function load(){
-
-  const res = await fetch(API_URL);
+async function loadSets(){
+  const res = await fetch(API_BASE + "/sets");
   const json = await res.json();
 
-  const data = json.data;
+  sets = json.data;
+
+  const select = document.getElementById("setFilter");
+
+  sets.forEach(s=>{
+    const option = document.createElement("option");
+    option.value = s.id;
+    option.textContent = s.name;
+    select.appendChild(option);
+  });
+}
+
+async function loadCards(setId=""){
+  
+  let url = API_BASE + "/cards?pageSize=40";
+
+  if(setId){
+    url += `&q=set.id:${setId}`;
+  }
+
+  const res = await fetch(url);
+  const json = await res.json();
+
+  allCards = json.data;
+
+  renderCards();
+}
+
+function renderCards(){
+
+  const search = document.getElementById("search").value.toLowerCase();
 
   const grid = document.getElementById("grid");
 
-  grid.innerHTML = data.map(c=>`
+  const filtered = allCards.filter(c =>
+    c.name.toLowerCase().includes(search)
+  );
+
+  grid.innerHTML = filtered.map(c=>`
     <div class="card">
       <img src="${c.images.small}" onclick="openImg('${c.images.large}')">
       <h4>${c.name}</h4>
@@ -82,13 +140,22 @@ function openImg(src){
   document.getElementById("modalImg").src = src;
 }
 
+document.getElementById("search").addEventListener("input", renderCards);
+
+document.getElementById("setFilter").addEventListener("change", (e)=>{
+  loadCards(e.target.value);
+});
+
 document.addEventListener("click",e=>{
   if(e.target.id==="modal"){
     document.getElementById("modal").style.display="none";
   }
 });
 
-document.addEventListener("DOMContentLoaded", load);
+document.addEventListener("DOMContentLoaded", async ()=>{
+  await loadSets();
+  await loadCards();
+});
 
 </script>
 
