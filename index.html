@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda de Cartas</title>
+<title>Tienda PRO v2</title>
 
 <style>
 body{
@@ -12,13 +12,29 @@ body{
   margin:0;
 }
 
+/* HEADER */
 header{
   background:#1e3a8a;
-  padding:20px;
+  padding:15px;
   text-align:center;
   font-size:20px;
 }
 
+/* MENU */
+.menu{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  padding:10px;
+  background:#111827;
+}
+
+.menu button{
+  padding:8px;
+  cursor:pointer;
+}
+
+/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
@@ -32,18 +48,28 @@ header{
   border-radius:10px;
 }
 
-button{
+.card img{
   width:100%;
-  padding:8px;
-  margin-top:5px;
-  cursor:pointer;
+  border-radius:8px;
+}
+
+/* CART */
+.cart{
+  position:fixed;
+  right:0;
+  top:0;
+  width:250px;
+  height:100%;
+  background:#0b1220;
+  padding:10px;
+  overflow:auto;
 }
 
 /* ADMIN */
 #adminPanel{
   position:fixed;
   top:20px;
-  right:20px;
+  right:270px;
   background:#111827;
   padding:10px;
   border:1px solid #3b82f6;
@@ -54,17 +80,33 @@ button{
 
 <body>
 
-<header>
-🃏 Tienda de Cartas Coleccionables
-</header>
+<header>🃏 Tienda PRO v2</header>
+
+<div class="menu">
+  <button onclick="filter('all')">Todos</button>
+  <button onclick="filter('pokemon')">Pokémon</button>
+  <button onclick="filter('juegos')">Juegos</button>
+</div>
 
 <div id="grid" class="grid"></div>
+
+<!-- CART -->
+<div class="cart">
+  <h3>🛒 Carrito</h3>
+  <div id="cartItems"></div>
+</div>
 
 <!-- ADMIN -->
 <div id="adminPanel">
 <h3>Admin</h3>
 <input id="name" placeholder="Nombre"><br><br>
 <input id="price" placeholder="Precio"><br><br>
+<input id="img" placeholder="URL imagen"><br><br>
+<select id="cat">
+  <option value="pokemon">Pokémon</option>
+  <option value="juegos">Juegos</option>
+</select><br><br>
+
 <button onclick="addCard()">Agregar</button>
 </div>
 
@@ -72,72 +114,106 @@ button{
 
 let isAdmin = false;
 
-let cards = [
-  {id:1,name:"Charizard EX",price:50000,stock:3},
-  {id:2,name:"Pikachu V",price:20000,stock:5}
+let products = JSON.parse(localStorage.getItem("products")) || [
+  {
+    id:1,
+    name:"Charizard EX",
+    price:50000,
+    img:"https://images.pokemontcg.io/base1/4.png",
+    cat:"pokemon"
+  },
+  {
+    id:2,
+    name:"Zelda TOTK",
+    price:60000,
+    img:"https://upload.wikimedia.org/wikipedia/en/1/1a/The_Legend_of_Zelda_Tears_of_the_Kingdom_cover.jpg",
+    cat:"juegos"
+  }
 ];
 
-function render(){
-  const grid = document.getElementById("grid");
-  grid.innerHTML="";
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-  cards.forEach(c=>{
-    if(c.stock <= 0) return;
+let currentFilter = "all";
+
+/* RENDER */
+function render(){
+
+  localStorage.setItem("products", JSON.stringify(products));
+  localStorage.setItem("cart", JSON.stringify(cart));
+
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  products.forEach(p=>{
+
+    if(currentFilter !== "all" && p.cat !== currentFilter) return;
 
     grid.innerHTML += `
       <div class="card">
-        <h3>${c.name}</h3>
-        <p>$${c.price}</p>
-        <p>Stock: ${c.stock}</p>
+        <img src="${p.img}">
+        <h3>${p.name}</h3>
+        <p>$${p.price}</p>
 
-        <button onclick="buy(${c.id})">Comprar</button>
+        <button onclick="buy(${p.id})">Agregar al carrito</button>
 
-        ${isAdmin ? `<button onclick="remove(${c.id})">Eliminar</button>` : ""}
+        ${isAdmin ? `<button onclick="remove(${p.id})">Eliminar</button>` : ""}
       </div>
     `;
   });
+
+  renderCart();
 }
 
+/* CART */
 function buy(id){
-  let c = cards.find(x=>x.id===id);
+  let p = products.find(x=>x.id===id);
+  cart.push(p);
+  render();
+}
 
-  if(c.stock <= 0) return;
+function renderCart(){
+  const box = document.getElementById("cartItems");
+  box.innerHTML = "";
 
-  c.stock--;
+  cart.forEach(c=>{
+    box.innerHTML += `<p>${c.name} - $${c.price}</p>`;
+  });
+}
 
-  window.open(
-    `https://wa.me/57TU_NUMERO?text=Quiero%20${c.name}`
-  );
-
+/* FILTER */
+function filter(cat){
+  currentFilter = cat;
   render();
 }
 
 /* ADMIN */
 document.addEventListener("keydown", e=>{
   if(e.ctrlKey && e.shiftKey && e.key==="A"){
-    let pass = prompt("Password admin:");
-
+    let pass = prompt("Admin password:");
     if(pass==="1234"){
       isAdmin = true;
       document.getElementById("adminPanel").style.display="block";
+      alert("Modo admin activado");
       render();
     }
   }
 });
 
 function addCard(){
-  cards.push({
+
+  products.push({
     id:Date.now(),
     name:document.getElementById("name").value,
-    price:document.getElementById("price").value,
-    stock:3
+    price:+document.getElementById("price").value,
+    img:document.getElementById("img").value,
+    cat:document.getElementById("cat").value
   });
 
   render();
 }
 
 function remove(id){
-  cards = cards.filter(x=>x.id!==id);
+  products = products.filter(x=>x.id!==id);
   render();
 }
 
