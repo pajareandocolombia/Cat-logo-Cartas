@@ -1,27 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tienda Pokémon</title>
+
+<style>
+body{
+  font-family: Arial;
+  background:#0f172a;
+  color:white;
+}
+
+h1{text-align:center;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:15px;
+  padding:20px;
+}
+
+.card{
+  background:#1e293b;
+  padding:10px;
+  border-radius:12px;
+  text-align:center;
+}
+
+.card img{
+  width:100%;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.price{
+  color:#22c55e;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Cartas Pokémon</h1>
+<div class="grid" id="grid"></div>
+
+<div id="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:black;justify-content:center;align-items:center;">
+<img id="modalImg" style="max-height:90%">
+</div>
+
 <script>
 
-function formatPrice(v){
-  return new Intl.NumberFormat('es-CO',{
-    style:'currency',
-    currency:'COP',
-    minimumFractionDigits:0
-  }).format(v);
+const API_URL = "https://api.pokemontcg.io/v2/cards?q=set.id:sv3&pageSize=20";
+
+function formatPrice(){
+  return "$" + Math.floor(Math.random()*100000);
 }
 
 async function load(){
 
-  const data = await fetch("cartas.json").then(r=>r.json());
+  const res = await fetch(API_URL);
+  const json = await res.json();
 
-  const disponibles = data.filter(c => c.available);
+  const data = json.data;
 
   const grid = document.getElementById("grid");
 
-  grid.innerHTML = disponibles.map(c=>`
+  grid.innerHTML = data.map(c=>`
     <div class="card">
-      <img src="${c.small}" onclick="openImg('${c.large}')">
+      <img src="${c.images.small}" onclick="openImg('${c.images.large}')">
       <h4>${c.name}</h4>
-      <p>${c.rarity}</p>
-      <div class="price">${formatPrice(c.price)}</div>
+      <p>${c.rarity || "N/A"}</p>
+      <div class="price">${formatPrice()}</div>
     </div>
   `).join("");
 
@@ -41,3 +91,6 @@ document.addEventListener("click",e=>{
 document.addEventListener("DOMContentLoaded", load);
 
 </script>
+
+</body>
+</html>
