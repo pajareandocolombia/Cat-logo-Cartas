@@ -191,7 +191,8 @@ async function loadAllStock(){
   document.getElementById("title").innerText =
     "Todas las cartas en stock";
 
-  let cards = [];
+  let grouped = {};
+
   const ids = Object.keys(inventory);
 
   for(const id of ids){
@@ -207,17 +208,40 @@ async function loadAllStock(){
 
     if(inv && inv.stock && inv.qty > 0){
 
-      cards.push({
+      const setName = c.set.name;
+      const releaseDate = c.set.releaseDate || "2000-01-01";
+
+      if(!grouped[setName]){
+        grouped[setName] = {
+          releaseDate: releaseDate,
+          cards: []
+        };
+      }
+
+      grouped[setName].cards.push({
         id:c.id,
         name:c.name,
         img:c.images.small,
-        set:c.set.name,
-        releaseDate:c.set.releaseDate,
         qty:inv.qty
       });
     }
   }
 
+  // 🔥 convertir a array y ordenar colecciones
+  let orderedSets = Object.keys(grouped).map(set=>({
+    name:set,
+    releaseDate:grouped[set].releaseDate,
+    cards:grouped[set].cards
+  }));
+
+  orderedSets.sort((a,b)=>
+    new Date(b.releaseDate) - new Date(a.releaseDate)
+  );
+
+  allCards = orderedSets.flatMap(s=>s.cards);
+
+  renderGrouped(orderedSets);
+}
   // ordenar por colección reciente
   cards.sort((a,b)=>
     new Date(b.releaseDate) - new Date(a.releaseDate)
@@ -229,27 +253,25 @@ async function loadAllStock(){
 }
 
 /* RENDER GROUPED */
-function renderGrouped(cards){
+function renderGrouped(sets){
 
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  const grouped = {};
-
-  cards.forEach(c=>{
-    if(!grouped[c.set]) grouped[c.set] = [];
-    grouped[c.set].push(c);
-  });
-
-  Object.keys(grouped).forEach(set=>{
+  sets.forEach(set=>{
 
     grid.innerHTML += `
-      <h3 style="grid-column:1/-1;border-bottom:1px solid #334155;">
-        ${set}
+      <h3 style="
+        grid-column:1/-1;
+        border-bottom:1px solid #334155;
+        padding-bottom:5px;
+      ">
+        ${set.name}
       </h3>
     `;
 
-    grouped[set].forEach(c=>{
+    set.cards.forEach(c=>{
+
       grid.innerHTML += `
         <div class="card">
           <img src="${c.img}">
