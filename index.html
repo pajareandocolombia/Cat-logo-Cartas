@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V7</title>
+<title>Tienda Pokémon PRO V7.2</title>
 
 <style>
 body{
@@ -11,56 +11,40 @@ body{
   background:#0f172a;
   color:white;
 }
-
-/* HEADER */
 header{
   background:#1e3a8a;
   padding:10px;
   text-align:center;
 }
-
-/* SEARCH */
 .search{
-  display:flex;
   padding:10px;
   background:#111827;
   position:relative;
 }
-
 .search input{
-  flex:1;
+  width:100%;
   padding:8px;
   border-radius:6px;
   border:none;
 }
-
-/* AUTOCOMPLETE */
 .suggestions{
   position:absolute;
   top:45px;
   left:10px;
   right:10px;
   background:#1e293b;
-  z-index:1000;
   max-height:200px;
   overflow:auto;
+  z-index:1000;
 }
-
 .suggestions div{
-  padding:8px;
+  padding:6px;
   cursor:pointer;
 }
-
 .suggestions div:hover{
   background:#334155;
 }
-
-/* LAYOUT */
-.container{
-  display:flex;
-}
-
-/* SIDEBAR */
+.container{display:flex;}
 .sets{
   width:220px;
   height:100vh;
@@ -68,7 +52,6 @@ header{
   background:#111827;
   padding:8px;
 }
-
 .set{
   background:#1e293b;
   padding:6px;
@@ -77,48 +60,28 @@ header{
   cursor:pointer;
   font-size:12px;
 }
-
-.set img{
-  width:100%;
-  border-radius:4px;
-}
-
-/* MAIN */
-.main{
-  flex:1;
-  padding:10px;
-}
-
+.set img{width:100%;}
+.main{flex:1;padding:10px;}
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:10px;
 }
-
-/* CARD */
 .card{
   background:#1e293b;
   padding:8px;
   border-radius:10px;
 }
-
-.card img{
-  width:100%;
-  border-radius:6px;
-}
-
+.card img{width:100%;}
 button{
   width:100%;
   margin-top:5px;
   padding:6px;
   border:none;
   border-radius:6px;
-  cursor:pointer;
   background:#22c55e;
   color:white;
 }
-
-/* GLOBAL BUTTON */
 .global-btn{
   width:100%;
   padding:8px;
@@ -126,20 +89,15 @@ button{
   background:#3b82f6;
   border:none;
   border-radius:6px;
-  cursor:pointer;
   color:white;
-  font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<header>
-🃏 Pokémon TCG PRO V7 — Final Stable
-</header>
+<header>🃏 Pokémon TCG PRO V7.2</header>
 
-<!-- SEARCH -->
 <div class="search">
   <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
   <div id="suggestions" class="suggestions"></div>
@@ -147,14 +105,10 @@ button{
 
 <div class="container">
 
-<!-- SIDEBAR -->
 <div class="sets" id="sets">
-  <button class="global-btn" onclick="loadAllStock()">
-    🟢 Ver todo el stock
-  </button>
+  <button class="global-btn" onclick="loadAllStock()">🟢 Ver todo el stock</button>
 </div>
 
-<!-- MAIN -->
 <div class="main">
   <h3 id="title">Cargando...</h3>
   <div class="grid" id="grid"></div>
@@ -167,14 +121,20 @@ button{
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
-/* STATE */
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 let allCards = [];
-let currentSet = null;
-let viewMode = "all";
+let loadedSets = {}; // cache
 
 /* ======================
-   LOAD SETS
+   VALIDAR STOCK
+====================== */
+function hasStock(id){
+  const inv = inventory[id];
+  return inv && inv.stock && inv.qty > 0;
+}
+
+/* ======================
+   LOAD SETS MENU
 ====================== */
 async function loadSets(){
 
@@ -204,20 +164,19 @@ async function loadSets(){
 }
 
 /* ======================
-   GLOBAL STOCK VIEW
+   LOAD ALL STOCK
 ====================== */
 async function loadAllStock(){
-
-  viewMode = "all";
-  currentSet = null;
 
   document.getElementById("title").innerText =
     "Todas las cartas en stock";
 
+  let cards = [];
+
+  const hasInventory = Object.keys(inventory).length > 0;
+
   const resSets = await fetch(API_SETS);
   const sets = await resSets.json();
-
-  let cards = [];
 
   const ordered = sets.data.sort((a,b)=>
     new Date(b.releaseDate) - new Date(a.releaseDate)
@@ -225,24 +184,55 @@ async function loadAllStock(){
 
   for(const s of ordered){
 
-    const res = await fetch(API_CARDS + s.id);
-    const json = await res.json();
+    // cache
+    if(!loadedSets[s.id]){
+      const res = await fetch(API_CARDS + s.id);
+      const json = await res.json();
+      loadedSets[s.id] = json.data;
+    }
 
-    json.data.forEach(c=>{
+    const setCards = loadedSets[s.id];
 
-      const inv = inventory[c.id];
+    setCards.forEach(c=>{
 
-      if(inv && inv.stock && inv.qty > 0){
-
+      if(hasInventory){
+        if(hasStock(c.id)){
+          cards.push({
+            id:c.id,
+            name:c.name,
+            img:c.images.small,
+            set:s.name,
+            qty:inventory[c.id].qty
+          });
+        }
+      }else{
+        // modo demo
         cards.push({
           id:c.id,
           name:c.name,
           img:c.images.small,
           set:s.name,
-          qty:inv.qty
+          qty:1
         });
       }
+
     });
+  }
+
+  // fallback si no hay coincidencias
+  if(cards.length === 0){
+    const firstSet = ordered[0];
+
+    const res = await fetch(API_CARDS + firstSet.id);
+    const json = await res.json();
+
+    cards = json.data.slice(0,20).map(c=>({
+      id:c.id,
+      name:c.name,
+      img:c.images.small,
+      set:firstSet.name,
+      qty:1
+    }));
   }
 
   allCards = cards;
@@ -251,7 +241,7 @@ async function loadAllStock(){
 }
 
 /* ======================
-   GROUP VIEW
+   RENDER GROUPED
 ====================== */
 function renderGrouped(cards){
 
@@ -276,10 +266,7 @@ function renderGrouped(cards){
           <img src="${c.img}">
           <div>${c.name}</div>
           <div>Stock: ${c.qty}</div>
-
-          <button onclick="buy('${c.name}')">
-            Comprar
-          </button>
+          <button onclick="buy('${c.name}')">Comprar</button>
         </div>
       `;
     });
@@ -287,36 +274,32 @@ function renderGrouped(cards){
 }
 
 /* ======================
-   FILTER BY SET
+   LOAD SET
 ====================== */
 async function loadSet(setId, name){
 
-  viewMode = "set";
-  currentSet = setId;
-
   document.getElementById("title").innerText = name;
 
-  const res = await fetch(API_CARDS + setId);
-  const json = await res.json();
+  if(!loadedSets[setId]){
+    const res = await fetch(API_CARDS + setId);
+    const json = await res.json();
+    loadedSets[setId] = json.data;
+  }
 
-  const filtered = json.data
-    .filter(c=>{
-      const inv = inventory[c.id];
-      return inv && inv.stock && inv.qty > 0;
-    })
+  const filtered = loadedSets[setId]
+    .filter(c => hasStock(c.id))
     .map(c=>({
       id:c.id,
       name:c.name,
       img:c.images.small,
-      qty:inventory[c.id].qty,
-      set:name
+      qty:inventory[c.id]?.qty || 1
     }));
 
   render(filtered);
 }
 
 /* ======================
-   SIMPLE RENDER
+   RENDER SIMPLE
 ====================== */
 function render(cards){
 
@@ -324,16 +307,12 @@ function render(cards){
   grid.innerHTML = "";
 
   cards.forEach(c=>{
-
     grid.innerHTML += `
       <div class="card">
         <img src="${c.img}">
         <div>${c.name}</div>
         <div>Stock: ${c.qty}</div>
-
-        <button onclick="buy('${c.name}')">
-          Comprar
-        </button>
+        <button onclick="buy('${c.name}')">Comprar</button>
       </div>
     `;
   });
@@ -364,22 +343,18 @@ function searchCards(){
   render(matches);
 }
 
-/* SELECT SEARCH */
+/* ====================== */
 function selectSearch(name){
 
-  document.getElementById("search").value = name;
+  document.getElementById("search").value = "";
   document.getElementById("suggestions").innerHTML = "";
 
   const filtered = allCards.filter(c=>c.name === name);
-
   render(filtered);
 }
 
-/* ======================
-   BUY
-====================== */
+/* ====================== */
 function buy(name){
-
   window.open(
     "https://wa.me/57TU_NUMERO?text=Quiero%20la%20carta%20"+encodeURIComponent(name)
   );
