@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda PRO v3.1</title>
+<title>Tienda Pokémon PRO V4</title>
 
 <style>
 body{
-  font-family:Arial;
   margin:0;
+  font-family:Arial;
   background:#0f172a;
   color:white;
 }
@@ -24,14 +24,13 @@ header{
   display:flex;
 }
 
-/* SIDEBAR (COLLECTIONS COMPACTA) */
+/* SIDEBAR SETS */
 .sets{
-  width:200px;
+  width:220px;
   height:100vh;
   overflow:auto;
   background:#111827;
   padding:8px;
-  transition:0.3s;
 }
 
 .set{
@@ -54,6 +53,7 @@ header{
   padding:10px;
 }
 
+/* GRID */
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
@@ -70,32 +70,23 @@ header{
 
 .card img{
   width:100%;
+  border-radius:6px;
 }
 
-/* STOCK BUTTONS */
+/* BUY BUTTON */
 button{
   width:100%;
   margin-top:5px;
-  padding:5px;
+  padding:6px;
   cursor:pointer;
+  background:#22c55e;
+  border:none;
+  color:white;
+  border-radius:6px;
 }
 
-/* ADMIN MODE */
-.admin{
-  border:2px solid #f59e0b;
-}
-
-/* TOGGLE PANEL */
-.toggle{
-  background:#111827;
-  padding:5px;
-  text-align:center;
-  cursor:pointer;
-  font-size:12px;
-  border-bottom:1px solid #334155;
-}
-
-.hidden{
+/* HIDDEN ADMIN */
+.adminTag{
   display:none;
 }
 </style>
@@ -104,17 +95,15 @@ button{
 <body>
 
 <header>
-🧩 Pokémon TCG PRO v3.1
+🃏 Tienda Pokémon PRO — Vista Usuario
 </header>
 
 <div class="container">
 
-<!-- SIDEBAR COLLECTIONS -->
-<div class="sets" id="sets">
-  <div class="toggle" onclick="toggleSets()">📂 Colecciones</div>
-</div>
+<!-- COLECCIONES -->
+<div class="sets" id="sets"></div>
 
-<!-- MAIN -->
+<!-- PRODUCTOS -->
 <div class="main">
   <h3 id="title">Selecciona una colección</h3>
   <div class="grid" id="grid"></div>
@@ -127,27 +116,8 @@ button{
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 
-let admin = false;
+/* INVENTARIO GLOBAL (ADMIN LO CONTROLA) */
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-let setsVisible = true;
-
-/* ADMIN LOGIN */
-document.addEventListener("keydown", e=>{
-  if(e.ctrlKey && e.shiftKey && e.key==="A"){
-    let pass = prompt("Admin password:");
-    if(pass==="1234"){
-      admin = true;
-      alert("Admin activado");
-    }
-  }
-});
-
-/* TOGGLE SIDEBAR */
-function toggleSets(){
-  const box = document.getElementById("sets");
-  setsVisible = !setsVisible;
-  box.style.width = setsVisible ? "200px" : "40px";
-}
 
 /* LOAD SETS */
 async function loadSets(){
@@ -156,6 +126,7 @@ async function loadSets(){
   const json = await res.json();
 
   const box = document.getElementById("sets");
+  box.innerHTML = "";
 
   json.data.forEach(s=>{
 
@@ -173,7 +144,7 @@ async function loadSets(){
   });
 }
 
-/* LOAD CARDS */
+/* LOAD CARDS (SOLO STOCK DISPONIBLE) */
 async function loadCards(setId, name){
 
   document.getElementById("title").innerText = name;
@@ -186,75 +157,30 @@ async function loadCards(setId, name){
 
   json.data.forEach(c=>{
 
-    if(!inventory[c.id]){
-      inventory[c.id] = {
-        stock:false,
-        qty:0
-      };
-    }
+    const inv = inventory[c.id];
 
-    const item = inventory[c.id];
+    // ❌ SOLO MOSTRAR SI TIENE STOCK
+    if(!inv || !inv.stock || inv.qty <= 0) return;
 
     grid.innerHTML += `
-      <div class="card ${admin ? "admin":""}">
+      <div class="card">
         <img src="${c.images.small}">
         <div>${c.name}</div>
-        <div>Stock: ${item.stock ? item.qty : 0}</div>
+        <div>Stock: ${inv.qty}</div>
 
-        ${admin ? `
-          <button onclick="toggleStock('${c.id}')">
-            ${item.stock ? "❌ Desactivar" : "✔ Activar"}
-          </button>
-
-          <button onclick="addQty('${c.id}')">+ Stock</button>
-          <button onclick="removeQty('${c.id}')">- Stock</button>
-        ` : ""}
+        <button onclick="buy('${c.name}')">
+          Comprar por WhatsApp
+        </button>
       </div>
     `;
   });
-
-  save();
 }
 
-/* STOCK CONTROL */
-function toggleStock(id){
-  inventory[id].stock = !inventory[id].stock;
-
-  if(inventory[id].stock && inventory[id].qty === 0){
-    inventory[id].qty = 1;
-  }
-
-  save();
-  reload();
-}
-
-function addQty(id){
-  inventory[id].qty++;
-  save();
-  reload();
-}
-
-function removeQty(id){
-  if(inventory[id].qty > 0){
-    inventory[id].qty--;
-  }
-
-  if(inventory[id].qty === 0){
-    inventory[id].stock = false;
-  }
-
-  save();
-  reload();
-}
-
-/* SAVE */
-function save(){
-  localStorage.setItem("inventory", JSON.stringify(inventory));
-}
-
-/* RELOAD */
-function reload(){
-  location.reload();
+/* WHATSAPP BUY */
+function buy(name){
+  window.open(
+    "https://wa.me/57TU_NUMERO?text=Quiero%20la%20carta%20"+encodeURIComponent(name)
+  );
 }
 
 /* INIT */
