@@ -2,64 +2,29 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V7.2</title>
+<title>Tienda Pokémon PRO V7.3</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f172a;
-  color:white;
-}
+body{margin:0;font-family:Arial;background:#0f172a;color:white;}
 header{
   background:#1e3a8a;
   padding:10px;
-  text-align:center;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-.search{
-  padding:10px;
-  background:#111827;
-  position:relative;
-}
-.search input{
-  width:100%;
-  padding:8px;
-  border-radius:6px;
-  border:none;
-}
+.search{padding:10px;background:#111827;position:relative;}
+.search input{width:100%;padding:8px;border-radius:6px;border:none;}
 .suggestions{
-  position:absolute;
-  top:45px;
-  left:10px;
-  right:10px;
-  background:#1e293b;
-  max-height:200px;
-  overflow:auto;
-  z-index:1000;
-}
-.suggestions div{
-  padding:6px;
-  cursor:pointer;
-}
-.suggestions div:hover{
-  background:#334155;
+  position:absolute;top:45px;left:10px;right:10px;
+  background:#1e293b;max-height:200px;overflow:auto;
 }
 .container{display:flex;}
 .sets{
-  width:220px;
-  height:100vh;
-  overflow:auto;
-  background:#111827;
-  padding:8px;
+  width:220px;height:100vh;overflow:auto;
+  background:#111827;padding:8px;
 }
-.set{
-  background:#1e293b;
-  padding:6px;
-  margin-bottom:6px;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:12px;
-}
+.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;font-size:12px;}
 .set img{width:100%;}
 .main{flex:1;padding:10px;}
 .grid{
@@ -67,36 +32,32 @@ header{
   grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
   gap:10px;
 }
-.card{
-  background:#1e293b;
-  padding:8px;
-  border-radius:10px;
-}
+.card{background:#1e293b;padding:8px;border-radius:10px;}
 .card img{width:100%;}
 button{
-  width:100%;
-  margin-top:5px;
-  padding:6px;
-  border:none;
-  border-radius:6px;
-  background:#22c55e;
-  color:white;
+  width:100%;margin-top:5px;padding:6px;border:none;
+  border-radius:6px;background:#22c55e;color:white;
 }
 .global-btn{
-  width:100%;
-  padding:8px;
-  margin-bottom:10px;
-  background:#3b82f6;
+  width:100%;padding:8px;margin-bottom:10px;
+  background:#3b82f6;border:none;border-radius:6px;color:white;
+}
+.admin-btn{
+  background:#f59e0b;
   border:none;
+  padding:6px 10px;
   border-radius:6px;
-  color:white;
+  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<header>🃏 Pokémon TCG PRO V7.2</header>
+<header>
+  <div>🃏 Tienda Pokémon PRO V7.3</div>
+  <button class="admin-btn" onclick="loginAdmin()">Admin</button>
+</header>
 
 <div class="search">
   <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
@@ -119,22 +80,29 @@ button{
 <script>
 
 const API_SETS = "https://api.pokemontcg.io/v2/sets";
-const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
+const API_CARD = "https://api.pokemontcg.io/v2/cards/";
 
 let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 let allCards = [];
-let loadedSets = {}; // cache
+let loadedCards = {}; // cache por ID
 
 /* ======================
-   VALIDAR STOCK
+   🔐 ADMIN LOGIN
 ====================== */
-function hasStock(id){
-  const inv = inventory[id];
-  return inv && inv.stock && inv.qty > 0;
+function loginAdmin(){
+
+  const pass = prompt("Contraseña admin:");
+
+  if(pass === "1234"){
+    alert("Modo admin activado");
+    console.log("ADMIN MODE");
+  }else{
+    alert("Acceso denegado");
+  }
 }
 
 /* ======================
-   LOAD SETS MENU
+   LOAD SET MENU
 ====================== */
 async function loadSets(){
 
@@ -164,7 +132,7 @@ async function loadSets(){
 }
 
 /* ======================
-   LOAD ALL STOCK
+   🔥 LOAD STOCK REAL
 ====================== */
 async function loadAllStock(){
 
@@ -173,64 +141,49 @@ async function loadAllStock(){
 
   let cards = [];
 
-  const hasInventory = Object.keys(inventory).length > 0;
+  const ids = Object.keys(inventory);
 
-  const resSets = await fetch(API_SETS);
-  const sets = await resSets.json();
+  // 🔥 SI HAY INVENTARIO → cargar SOLO esas cartas
+  if(ids.length > 0){
 
-  const ordered = sets.data.sort((a,b)=>
-    new Date(b.releaseDate) - new Date(a.releaseDate)
-  );
+    for(const id of ids){
 
-  for(const s of ordered){
+      if(!loadedCards[id]){
+        const res = await fetch(API_CARD + id);
+        const json = await res.json();
+        loadedCards[id] = json.data;
+      }
 
-    // cache
-    if(!loadedSets[s.id]){
-      const res = await fetch(API_CARDS + s.id);
-      const json = await res.json();
-      loadedSets[s.id] = json.data;
-    }
+      const c = loadedCards[id];
+      const inv = inventory[id];
 
-    const setCards = loadedSets[s.id];
+      if(inv.stock && inv.qty > 0){
 
-    setCards.forEach(c=>{
-
-      if(hasInventory){
-        if(hasStock(c.id)){
-          cards.push({
-            id:c.id,
-            name:c.name,
-            img:c.images.small,
-            set:s.name,
-            qty:inventory[c.id].qty
-          });
-        }
-      }else{
-        // modo demo
         cards.push({
           id:c.id,
           name:c.name,
           img:c.images.small,
-          set:s.name,
-          qty:1
+          set:c.set.name,
+          qty:inv.qty
         });
       }
+    }
 
-    });
-  }
+  }else{
+    // modo demo
+    const res = await fetch(API_SETS);
+    const sets = await res.json();
 
-  // fallback si no hay coincidencias
-  if(cards.length === 0){
-    const firstSet = ordered[0];
+    const first = sets.data[0];
 
-    const res = await fetch(API_CARDS + firstSet.id);
-    const json = await res.json();
+    const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${first.id}`);
+    const j = await r.json();
 
-    cards = json.data.slice(0,20).map(c=>({
+    cards = j.data.slice(0,20).map(c=>({
       id:c.id,
       name:c.name,
       img:c.images.small,
-      set:firstSet.name,
+      set:first.name,
       qty:1
     }));
   }
@@ -280,14 +233,11 @@ async function loadSet(setId, name){
 
   document.getElementById("title").innerText = name;
 
-  if(!loadedSets[setId]){
-    const res = await fetch(API_CARDS + setId);
-    const json = await res.json();
-    loadedSets[setId] = json.data;
-  }
+  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}`);
+  const json = await res.json();
 
-  const filtered = loadedSets[setId]
-    .filter(c => hasStock(c.id))
+  const filtered = json.data
+    .filter(c => inventory[c.id]?.stock)
     .map(c=>({
       id:c.id,
       name:c.name,
@@ -299,7 +249,7 @@ async function loadSet(setId, name){
 }
 
 /* ======================
-   RENDER SIMPLE
+   RENDER
 ====================== */
 function render(cards){
 
@@ -343,7 +293,6 @@ function searchCards(){
   render(matches);
 }
 
-/* ====================== */
 function selectSearch(name){
 
   document.getElementById("search").value = "";
