@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V8</title>
+<title>Tienda Pokémon PRO V8.1</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -28,6 +28,15 @@ header{
 .suggestions{
   position:absolute;top:45px;left:10px;right:10px;
   background:#1e293b;max-height:200px;overflow:auto;
+  z-index:1000;
+}
+
+.suggestions div{
+  padding:6px;
+  cursor:pointer;
+}
+.suggestions div:hover{
+  background:#334155;
 }
 
 .container{display:flex;}
@@ -101,7 +110,7 @@ button{
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V8</div>
+  <div>🃏 Tienda Pokémon PRO V8.1</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -176,7 +185,7 @@ async function loadSets(){
   });
 }
 
-/* LOAD STOCK */
+/* LOAD ALL STOCK (FIX REAL) */
 async function loadAllStock(){
 
   document.getElementById("title").innerText =
@@ -185,33 +194,37 @@ async function loadAllStock(){
   let cards = [];
   const ids = Object.keys(inventory);
 
-  if(ids.length > 0){
+  for(const id of ids){
 
-    for(const id of ids){
-
-      if(!loadedCards[id]){
-        const res = await fetch(API_CARD + id);
-        const json = await res.json();
-        loadedCards[id] = json.data;
-      }
-
-      const c = loadedCards[id];
-      const inv = inventory[id];
-
-      if(inv.stock && inv.qty > 0){
-        cards.push({
-          id:c.id,
-          name:c.name,
-          img:c.images.small,
-          set:c.set.name,
-          qty:inv.qty
-        });
-      }
+    if(!loadedCards[id]){
+      const res = await fetch(API_CARD + id);
+      const json = await res.json();
+      loadedCards[id] = json.data;
     }
 
+    const c = loadedCards[id];
+    const inv = inventory[id];
+
+    if(inv && inv.stock && inv.qty > 0){
+
+      cards.push({
+        id:c.id,
+        name:c.name,
+        img:c.images.small,
+        set:c.set.name,
+        releaseDate:c.set.releaseDate,
+        qty:inv.qty
+      });
+    }
   }
 
+  // ordenar por colección reciente
+  cards.sort((a,b)=>
+    new Date(b.releaseDate) - new Date(a.releaseDate)
+  );
+
   allCards = cards;
+
   renderGrouped(cards);
 }
 
@@ -230,7 +243,11 @@ function renderGrouped(cards){
 
   Object.keys(grouped).forEach(set=>{
 
-    grid.innerHTML += `<h3 style="grid-column:1/-1">${set}</h3>`;
+    grid.innerHTML += `
+      <h3 style="grid-column:1/-1;border-bottom:1px solid #334155;">
+        ${set}
+      </h3>
+    `;
 
     grouped[set].forEach(c=>{
       grid.innerHTML += `
@@ -245,7 +262,7 @@ function renderGrouped(cards){
   });
 }
 
-/* FILTER SET */
+/* FILTER BY SET */
 async function loadSet(setId, name){
 
   document.getElementById("title").innerText = name;
@@ -265,7 +282,7 @@ async function loadSet(setId, name){
   render(filtered);
 }
 
-/* RENDER */
+/* RENDER SIMPLE */
 function render(cards){
 
   const grid = document.getElementById("grid");
