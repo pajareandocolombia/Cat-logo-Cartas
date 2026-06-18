@@ -28,16 +28,16 @@ async function load(){
 }
 
 function openImg(src){
-  modal.style.display="flex";
-  modalImg.src = src;
+  document.getElementById("modal").style.display="flex";
+  document.getElementById("modalImg").src = src;
 }
 
 document.addEventListener("click",e=>{
   if(e.target.id==="modal"){
-    modal.style.display="none";
+    document.getElementById("modal").style.display="none";
   }
 });
 
-load();
+document.addEventListener("DOMContentLoaded", load);
 
 </script>
