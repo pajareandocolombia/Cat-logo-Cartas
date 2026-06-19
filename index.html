@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V10 🛒💰</title>
+<title>Tienda Pokémon PRO V10.2 🛒</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -67,18 +67,6 @@ button{
 .badge.green{background:#22c55e;}
 .badge.red{background:#ef4444;}
 
-/* DIVIDER */
-.divider{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:linear-gradient(135deg,#1e3a8a,#0ea5e9);
-  border:2px dashed #60a5fa;
-  text-align:center;
-}
-.divider img{width:60px;margin-bottom:5px;}
-.divider-title{font-size:12px;}
-
 /* CART */
 #cartFloating{
   position:fixed;
@@ -88,8 +76,7 @@ button{
   padding:12px;
   border-radius:50%;
   cursor:pointer;
-  font-size:18px;
-  z-index:1000;
+  z-index:9999;
 }
 
 #cartPanel{
@@ -100,14 +87,48 @@ button{
   height:100%;
   background:#020617;
   padding:10px;
-  transition:0.3s;
-  z-index:1000;
+  transition:0.25s;
+  z-index:9999;
 }
 
 /* ADMIN */
 #adminPanel{
-position:fixed;top:0;right:-400px;width:400px;height:100%;
-background:#020617;overflow:auto;padding:10px;transition:0.3s;
+position:fixed;
+top:0;
+right:-400px;
+width:400px;
+height:100%;
+background:#020617;
+overflow:auto;
+padding:10px;
+transition:0.3s;
+z-index:9999;
+}
+
+/* LOGIN */
+#loginOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:10000;
+}
+
+#loginBox{
+  background:#1e293b;
+  padding:20px;
+  border-radius:10px;
+  width:280px;
+}
+
+#loginBox input{
+  width:100%;
+  padding:8px;
+  margin:10px 0;
+  border:none;
+  border-radius:6px;
 }
 </style>
 </head>
@@ -115,8 +136,8 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V10</div>
-  <button class="admin-btn" onclick="loginAdmin()">Admin</button>
+  <div>🃏 Tienda Pokémon PRO V10.2</div>
+  <button class="admin-btn" onclick="openLogin()">Admin</button>
 </header>
 
 <div class="search">
@@ -131,145 +152,135 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 </div>
 
 <!-- CART -->
-<div id="cartFloating" onclick="toggleCart()">
-  🛒 <span id="cartCount">0</span>
-</div>
+<div id="cartFloating" onclick="toggleCart()">🛒 <span id="cartCount">0</span></div>
 
 <div id="cartPanel">
   <h3>🛒 Carrito</h3>
   <div id="cartItems"></div>
   <h4 id="cartTotal">Total: $0</h4>
-  <button onclick="checkout()">Comprar por WhatsApp</button>
+  <button onclick="checkout()">Comprar</button>
 </div>
 
 <!-- ADMIN -->
 <div id="adminPanel">
   <h2>🛠️ Admin</h2>
-  <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
-  <div id="adminCards"></div>
+  <button onclick="logoutAdmin()" style="background:#ef4444;">Logout</button>
+  <div id="adminContent"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div id="loginBox">
+    <h3>🔐 Admin Login</h3>
+    <input id="pass" type="password" placeholder="Contraseña">
+    <button onclick="login()">Entrar</button>
+  </div>
 </div>
 
 <script>
 
-const API_SETS = "https://api.pokemontcg.io/v2/sets";
-const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
-
-let inventory = {};
-let cardCache = {};
-let setsData = [];
-let allCards = [];
-
-/* ===================== 🔥 FIX CARRO ===================== */
+/* ================= SAFE INIT ================= */
+let inventory = JSON.parse(localStorage.getItem("inventory") || "{}");
+let cardCache = JSON.parse(localStorage.getItem("cardCache") || "{}");
 let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+let setsData = [];
 
-/* SAVE CART (ÚNICA FUENTE DE VERDAD) */
+/* ================= SAVE HELPERS ================= */
 function saveCart(){
   localStorage.setItem("cart", JSON.stringify(cart));
 }
 
-/* INIT */
-document.addEventListener("DOMContentLoaded", async () => {
-
-  inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-  cardCache = JSON.parse(localStorage.getItem("cardCache")) || {};
-
-  await loadSets();
-  loadAllStock();
-  updateCart(); // 🔥 importante
-});
-
-/* LOAD SETS */
-async function loadSets(){
-  const res = await fetch(API_SETS);
-  const json = await res.json();
-  setsData = json.data;
+function saveInventory(){
+  localStorage.setItem("inventory", JSON.stringify(inventory));
 }
 
-/* LOAD STOCK */
+/* ================= INIT ================= */
+document.addEventListener("DOMContentLoaded", async ()=>{
+  await loadSets();
+  loadAllStock();
+  updateCart();
+
+  if(localStorage.getItem("admin") === "true"){
+    openAdmin();
+  }
+});
+
+/* ================= API ================= */
+const API_SETS = "https://api.pokemontcg.io/v2/sets";
+const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
+
+async function loadSets(){
+  try{
+    const r = await fetch(API_SETS);
+    const j = await r.json();
+    setsData = j.data || [];
+  }catch(e){
+    setsData = [];
+  }
+}
+
+/* ================= STOCK ================= */
 async function loadAllStock(){
 
-  document.getElementById("title").innerText = "Cartas disponibles";
-
-  const ids = Object.keys(inventory).filter(id => inventory[id].stock);
+  const ids = Object.keys(inventory).filter(i=>inventory[i].stock);
 
   if(ids.length === 0){
     document.getElementById("grid").innerHTML = "<h3>No hay stock</h3>";
     return;
   }
 
-  let missing = ids.filter(id => !cardCache[id]);
-
-  if(missing.length > 0){
-    const query = missing.map(id => `id:${id}`).join(" OR ");
-    const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${query}`);
-    const json = await res.json();
-
-    json.data.forEach(c=>{
-      cardCache[c.id] = {
-        name: c.name,
-        img: c.images.small,
-        set: c.set.name,
-        logo: c.set.images.logo
-      };
-    });
-
-    localStorage.setItem("cardCache", JSON.stringify(cardCache));
-  }
-
   let grouped = {};
 
   ids.forEach(id=>{
-    const data = cardCache[id];
     const inv = inventory[id];
+    const cache = cardCache[id];
 
-    if(!grouped[data.set]) grouped[data.set] = [];
+    if(!cache) return;
 
-    grouped[data.set].push({
+    if(!grouped[cache.set]) grouped[cache.set] = [];
+
+    grouped[cache.set].push({
       id,
-      name: data.name,
-      img: data.img,
-      qty: inv.qty,
+      name: cache.name,
+      img: cache.img,
+      qty: inv.qty || 1,
       price: inv.price || 0,
-      logo: data.logo
+      logo: cache.logo
     });
   });
 
-  renderGrouped(grouped);
+  render(grouped);
 }
 
-/* RENDER */
-function renderGrouped(grouped){
+/* ================= RENDER ================= */
+function render(grouped){
 
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  Object.keys(grouped).forEach(setName=>{
+  Object.keys(grouped).forEach(set=>{
 
-    const first = grouped[setName][0];
+    const first = grouped[set][0];
 
     grid.innerHTML += `
-      <div class="card divider">
-        <div>
-          ${first.logo ? `<img src="${first.logo}">` : ""}
-          <div class="divider-title">${setName}</div>
-        </div>
+      <div class="card" style="background:#1e3a8a;text-align:center;">
+        ${first.logo ? `<img src="${first.logo}" style="width:60px;">` : ""}
+        <div>${set}</div>
       </div>
     `;
 
-    grouped[setName].forEach(c=>{
+    grouped[set].forEach(c=>{
 
-      const badge =
-        c.qty <= 2
-          ? `<div class="badge red">Últimas</div>`
-          : `<div class="badge green">Disponible</div>`;
+      const badge = c.qty <= 2
+        ? `<div class="badge red">Últimas</div>`
+        : `<div class="badge green">OK</div>`;
 
       grid.innerHTML += `
         <div class="card">
           ${badge}
           <img src="${c.img}">
           <div>${c.name}</div>
-          <div>💰 $${c.price}</div>
-          <div>Stock: ${c.qty}</div>
+          <div>$${c.price}</div>
           <button onclick="addToCart('${c.id}')">Agregar</button>
         </div>
       `;
@@ -278,13 +289,12 @@ function renderGrouped(grouped){
   });
 }
 
-/* ===================== 🛒 FIX CARRITO ===================== */
+/* ================= CART (FIX FINAL ROBUSTO) ================= */
 function addToCart(id){
 
   const inv = inventory[id];
   const data = cardCache[id];
-
-  if(!data) return;
+  if(!inv || !data) return;
 
   const existing = cart.find(i=>i.id===id);
 
@@ -299,8 +309,8 @@ function addToCart(id){
     });
   }
 
+  saveCart();
   updateCart();
-  saveCart(); // 🔥 SIEMPRE GUARDAR
 
   document.getElementById("cartPanel").style.right = "-350px";
 }
@@ -308,7 +318,7 @@ function addToCart(id){
 function updateCart(){
 
   const totalQty = cart.reduce((a,b)=>a+b.qty,0);
-  const totalPrice = cart.reduce((a,b)=>a + (b.qty*b.price),0);
+  const totalPrice = cart.reduce((a,b)=>a+b.qty*b.price,0);
 
   document.getElementById("cartCount").innerText = totalQty;
 
@@ -328,18 +338,16 @@ function updateCart(){
     "Total: $" + totalPrice;
 }
 
-/* CART UI */
+/* ================= CART UI ================= */
 function toggleCart(){
-  const panel = document.getElementById("cartPanel");
-  panel.style.right = panel.style.right === "0px" ? "-350px" : "0px";
+  const p = document.getElementById("cartPanel");
+  p.style.right = p.style.right === "0px" ? "-350px" : "0px";
 }
 
-/* CHECKOUT */
+/* ================= CHECKOUT ================= */
 function checkout(){
 
-  if(cart.length === 0) return;
-
-  let text = "🛒 Pedido Pokémon:%0A%0A";
+  let text = "🛒 Pedido:%0A";
   let total = 0;
 
   cart.forEach(i=>{
@@ -347,30 +355,42 @@ function checkout(){
     total += i.qty*i.price;
   });
 
-  text += `%0A💰 TOTAL: $${total}`;
+  text += `%0ATotal: $${total}`;
 
-  window.open("https://wa.me/57TU_NUMERO?text=" + encodeURIComponent(text));
+  window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(text));
 
   cart = [];
   saveCart();
   updateCart();
-  document.getElementById("cartPanel").style.right = "-350px";
+}
+
+/* ================= ADMIN LOGIN ================= */
+function openLogin(){
+  document.getElementById("loginOverlay").style.display = "flex";
+}
+
+function login(){
+  const p = document.getElementById("pass").value;
+
+  if(p === "1234"){
+    localStorage.setItem("admin","true");
+    document.getElementById("loginOverlay").style.display = "none";
+    openAdmin();
+  }
+}
+
+function openAdmin(){
+  document.getElementById("adminPanel").style.right = "0px";
+  document.getElementById("adminContent").innerHTML =
+    "<p>Panel activo</p>";
+}
+
+function logoutAdmin(){
+  localStorage.removeItem("admin");
+  document.getElementById("adminPanel").style.right = "-400px";
 }
 
 </script>
-document.addEventListener("click", function (e) {
 
-  const panel = document.getElementById("cartPanel");
-  const button = document.getElementById("cartFloating");
-
-  const isCart = panel.contains(e.target);
-  const isButton = button.contains(e.target);
-
-  // si no está clickeando carrito ni botón → cerrar
-  if (!isCart && !isButton) {
-    panel.style.right = "-350px";
-  }
-
-});
 </body>
 </html>
