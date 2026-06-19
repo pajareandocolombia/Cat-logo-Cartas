@@ -2,12 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V9.5 🛒</title>
+<title>Tienda Pokémon PRO V10 🛒💰</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-between;}
+header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-between;align-items:center;}
 .admin-btn{background:#f59e0b;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
+
 .search{padding:10px;background:#111827;}
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
 
@@ -20,6 +21,7 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
   gap:10px;
 }
 
+/* CARD */
 .card{
   background:#1e293b;
   padding:8px;
@@ -40,9 +42,10 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
 }
 
 .card:hover img{
-  transform:scale(1.2);
+  transform:scale(1.15);
 }
 
+/* BUTTON */
 button{
   width:100%;
   margin-top:5px;
@@ -73,9 +76,17 @@ button{
   justify-content:center;
   background:linear-gradient(135deg,#1e3a8a,#0ea5e9);
   border:2px dashed #60a5fa;
+  text-align:center;
 }
-.divider img{width:80px;margin-bottom:5px;}
-.divider-title{font-size:12px;text-align:center;}
+
+.divider img{
+  width:60px;
+  margin-bottom:5px;
+}
+
+.divider-title{
+  font-size:12px;
+}
 
 /* CART */
 #cartFloating{
@@ -87,6 +98,7 @@ button{
   border-radius:50%;
   cursor:pointer;
   font-size:18px;
+  z-index:1000;
 }
 
 #cartPanel{
@@ -98,6 +110,7 @@ button{
   background:#020617;
   padding:10px;
   transition:0.3s;
+  z-index:1000;
 }
 
 /* ADMIN */
@@ -111,7 +124,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V9.5</div>
+  <div>🃏 Tienda Pokémon PRO V10</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -126,7 +139,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
   </div>
 </div>
 
-<!-- CARRITO -->
+<!-- CART -->
 <div id="cartFloating" onclick="toggleCart()">
   🛒 <span id="cartCount">0</span>
 </div>
@@ -134,13 +147,13 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <div id="cartPanel">
   <h3>🛒 Carrito</h3>
   <div id="cartItems"></div>
-  <h4 id="cartTotal">Total: 0</h4>
-  <button onclick="checkout()">Comprar</button>
+  <h4 id="cartTotal">Total: $0</h4>
+  <button onclick="checkout()">Comprar por WhatsApp</button>
 </div>
 
 <!-- ADMIN -->
 <div id="adminPanel">
-  <h2>🛠️ Panel Admin</h2>
+  <h2>🛠️ Admin</h2>
   <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
   <div id="adminCards"></div>
 </div>
@@ -154,24 +167,18 @@ let inventory = {};
 let cardCache = {};
 let setsData = [];
 let allCards = [];
-let cart = [];
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 /* INIT */
 document.addEventListener("DOMContentLoaded", async () => {
+
   inventory = JSON.parse(localStorage.getItem("inventory")) || {};
   cardCache = JSON.parse(localStorage.getItem("cardCache")) || {};
+
   await loadSets();
   loadAllStock();
+  updateCart();
 });
-
-/* ADMIN */
-function loginAdmin(){
-  const pass = prompt("Contraseña admin:");
-  if(pass === "1234"){
-    document.getElementById("adminPanel").style.right = "0px";
-    loadAdminSets();
-  }
-}
 
 /* LOAD SETS */
 async function loadSets(){
@@ -220,21 +227,20 @@ async function loadAllStock(){
 
     if(!grouped[data.set]) grouped[data.set] = [];
 
-    const item = {
+    grouped[data.set].push({
+      id,
       name: data.name,
       img: data.img,
       qty: inv.qty,
+      price: inv.price || 0,
       logo: data.logo
-    };
-
-    grouped[data.set].push(item);
-    allCards.push(item);
+    });
   });
 
   renderGrouped(grouped);
 }
 
-/* RENDER CONTINUO */
+/* RENDER */
 function renderGrouped(grouped){
 
   const grid = document.getElementById("grid");
@@ -247,7 +253,7 @@ function renderGrouped(grouped){
     grid.innerHTML += `
       <div class="card divider">
         <div>
-          <img src="${first.logo}">
+          ${first.logo ? `<img src="${first.logo}">` : ""}
           <div class="divider-title">${setName}</div>
         </div>
       </div>
@@ -265,8 +271,9 @@ function renderGrouped(grouped){
           ${badge}
           <img src="${c.img}">
           <div>${c.name}</div>
+          <div>💰 $${c.price}</div>
           <div>Stock: ${c.qty}</div>
-          <button onclick="addToCart('${c.name}')">Agregar</button>
+          <button onclick="addToCart('${c.id}')">Agregar</button>
         </div>
       `;
     });
@@ -276,6 +283,7 @@ function renderGrouped(grouped){
 
 /* SEARCH */
 function searchCards(){
+
   const q = document.getElementById("search").value.toLowerCase();
 
   if(!q){
@@ -283,52 +291,75 @@ function searchCards(){
     return;
   }
 
-  const matches = allCards.filter(c =>
-    c.name.toLowerCase().includes(q)
-  );
+  const results = [];
 
-  render(matches);
-}
+  Object.values(cardCache).forEach(c=>{
+    if(c.name.toLowerCase().includes(q)){
+      results.push(c);
+    }
+  });
 
-function render(cards){
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  cards.forEach(c=>{
+  results.forEach(c=>{
     grid.innerHTML += `
       <div class="card">
         <img src="${c.img}">
         <div>${c.name}</div>
-        <div>Stock: ${c.qty}</div>
       </div>
     `;
   });
 }
 
 /* CART */
-function addToCart(name){
-  const existing = cart.find(i=>i.name===name);
-  if(existing) existing.qty++;
-  else cart.push({name, qty:1});
+function addToCart(id){
+
+  const inv = inventory[id];
+  const data = cardCache[id];
+
+  const existing = cart.find(i=>i.id===id);
+
+  if(existing){
+    existing.qty++;
+  }else{
+    cart.push({
+      id,
+      name: data.name,
+      price: inv.price || 0,
+      qty: 1
+    });
+  }
+
+  saveCart();
   updateCart();
+
+  document.getElementById("cartPanel").style.right = "-350px";
 }
 
 function updateCart(){
-  document.getElementById("cartCount").innerText =
-    cart.reduce((a,b)=>a+b.qty,0);
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+
+  const totalQty = cart.reduce((a,b)=>a+b.qty,0);
+  const totalPrice = cart.reduce((a,b)=>a + b.qty*b.price,0);
+
+  document.getElementById("cartCount").innerText = totalQty;
 
   const box = document.getElementById("cartItems");
   box.innerHTML = "";
 
-  let total = 0;
-
   cart.forEach(i=>{
-    box.innerHTML += `<div>${i.name} x${i.qty}</div>`;
-    total += i.qty;
+    box.innerHTML += `
+      <div style="display:flex;justify-content:space-between;">
+        <span>${i.name} x${i.qty}</span>
+        <span>$${i.qty*i.price}</span>
+      </div>
+    `;
   });
 
   document.getElementById("cartTotal").innerText =
-    "Total items: " + total;
+    "Total: $" + totalPrice;
 }
 
 function toggleCart(){
@@ -337,21 +368,37 @@ function toggleCart(){
 }
 
 function checkout(){
+
   if(cart.length === 0) return;
 
-  let text = "Pedido:%0A";
+  let text = "🛒 Pedido Pokémon:%0A%0A";
+  let total = 0;
 
   cart.forEach(i=>{
-    text += `- ${i.name} x${i.qty}%0A`;
+    text += `- ${i.name} x${i.qty} = $${i.qty*i.price}%0A`;
+    total += i.qty*i.price;
   });
 
-  window.open("https://wa.me/57TU_NUMERO?text=" + text);
+  text += `%0A💰 TOTAL: $${total}`;
+
+  window.open("https://wa.me/57TU_NUMERO?text=" + encodeURIComponent(text));
+
+  cart = [];
+  saveCart();
+  updateCart();
+  document.getElementById("cartPanel").style.right = "-350px";
 }
 
 /* ADMIN */
 async function loadAdminSets(){
+  const res = await fetch(API_SETS);
+  const json = await res.json();
+
+  setsData = json.data;
+
   document.getElementById("adminSet").innerHTML =
     setsData.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+
   loadAdminSet();
 }
 
@@ -367,33 +414,36 @@ async function loadAdminSet(){
 
   json.data.forEach(c=>{
 
-    const inv = inventory[c.id] || {stock:false, qty:1};
+    const inv = inventory[c.id] || {stock:false, qty:1, price:0};
 
     box.innerHTML += `
-      <div style="margin-bottom:8px;">
+      <div style="margin-bottom:10px;">
         <img src="${c.images.small}" width="80">
+
         <div>${c.name}</div>
 
         <input type="checkbox"
           ${inv.stock ? "checked":""}
           onchange="toggleStock('${c.id}','${c.set.name}')"> Stock
 
-        <input type="number" value="${inv.qty}"
-          onchange="changeQty('${c.id}',this.value)">
+        <input type="number"
+          placeholder="Precio"
+          value="${inv.price}"
+          onchange="setPrice('${c.id}',this.value)">
       </div>
     `;
   });
 }
 
 function toggleStock(id,setName){
-  if(!inventory[id]) inventory[id]={stock:false,qty:1,set:setName};
-  inventory[id].stock=!inventory[id].stock;
+  if(!inventory[id]) inventory[id]={stock:false,qty:1,set:setName,price:0};
+  inventory[id].stock = !inventory[id].stock;
   save();
 }
 
-function changeQty(id,q){
-  if(!inventory[id]) inventory[id]={stock:true,qty:1};
-  inventory[id].qty=parseInt(q)||1;
+function setPrice(id,price){
+  if(!inventory[id]) inventory[id]={stock:false,qty:1,price:0};
+  inventory[id].price = parseFloat(price)||0;
   save();
 }
 
