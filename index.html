@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V8.5</title>
+<title>Tienda Pokémon PRO V10</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -12,7 +12,6 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
 .container{display:flex;}
 .sets{width:220px;height:100vh;overflow:auto;background:#111827;padding:8px;}
-.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;}
 .main{flex:1;padding:10px;}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
 .card{background:#1e293b;padding:8px;border-radius:10px;}
@@ -21,7 +20,7 @@ button{width:100%;margin-top:5px;padding:6px;border:none;border-radius:6px;backg
 .global-btn{width:100%;padding:8px;margin-bottom:10px;background:#3b82f6;border:none;border-radius:6px;color:white;}
 
 #adminPanel{
-position:fixed;top:0;right:-400px;width:400px;height:100%;
+position:fixed;top:0;right:-400px;width:350px;height:100%;
 background:#020617;overflow:auto;padding:10px;transition:0.3s;
 }
 </style>
@@ -30,7 +29,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V8.5</div>
+  <div>🃏 Tienda Pokémon PRO V10</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -40,119 +39,83 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 
 <div class="container">
 
-<div class="sets" id="sets">
+<div class="sets">
   <button class="global-btn" onclick="loadAllStock()">🟢 Ver todo el stock</button>
 </div>
 
 <div class="main">
-  <h3 id="title">Cargando stock...</h3>
+  <h3 id="title">Cargando...</h3>
   <div class="grid" id="grid"></div>
 </div>
 
 </div>
 
 <div id="adminPanel">
-  <h2>🛠️ Admin</h2>
-  <select id="adminSet" onchange="loadAdminSet()" style="width:100%"></select>
+  <h2>🛠️ Admin rápido</h2>
+  <input placeholder="Buscar carta..." oninput="adminSearch(this.value)">
   <div id="adminCards"></div>
 </div>
 
 <script>
 
-const API_SETS = "https://api.pokemontcg.io/v2/sets";
-const API_CARD = "https://api.pokemontcg.io/v2/cards/";
+let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
+let cache = JSON.parse(localStorage.getItem("cardsCache")) || {};
 
-let inventory = {};
-let allCards = [];
-let loadedCards = {};
-
-/* INIT */
-document.addEventListener("DOMContentLoaded", async () => {
-
-  inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-
-  await loadSets();
-
-  loadAllStock(); // 🔥 SIN TIMEOUT
+/* ================= INIT ================= */
+document.addEventListener("DOMContentLoaded", () => {
+  loadAllStock();
 });
 
-/* ADMIN */
-function loginAdmin(){
-  if(prompt("Clave") === "1234"){
-    document.getElementById("adminPanel").style.right = "0px";
-    loadAdminSets();
-  }
-}
+/* ================= BUILD CACHE ================= */
+async function buildCache(){
 
-/* LOAD SETS */
-async function loadSets(){
-  const res = await fetch(API_SETS);
+  const res = await fetch("https://api.pokemontcg.io/v2/cards?pageSize=250");
   const json = await res.json();
 
-  const sets = json.data.sort((a,b)=>
-    new Date(b.releaseDate) - new Date(a.releaseDate)
-  );
+  let newCache = {};
 
-  const box = document.getElementById("sets");
-
-  sets.forEach(s=>{
-    const div = document.createElement("div");
-    div.className = "set";
-    div.innerHTML = `<div>${s.name}</div>`;
-    div.onclick = ()=> loadSet(s.id, s.name);
-    box.appendChild(div);
+  json.data.forEach(c=>{
+    newCache[c.id] = {
+      name: c.name,
+      img: c.images.small,
+      set: c.set.name,
+      date: c.set.releaseDate || "2000-01-01"
+    };
   });
+
+  localStorage.setItem("cardsCache", JSON.stringify(newCache));
+
+  alert("Cache creada correctamente");
 }
 
-/* 🔥 LOAD STOCK FIX REAL */
-async function loadAllStock(){
+/* ================= LOAD STOCK ================= */
+function loadAllStock(){
 
-  document.getElementById("title").innerText = "Todas las cartas en stock";
+  document.getElementById("title").innerText =
+    "Todas las cartas en stock";
 
-  const ids = Object.keys(inventory);
-
-  if(ids.length === 0){
-    document.getElementById("grid").innerHTML =
-      "<h3>No hay cartas en stock</h3>";
-    return;
-  }
-
-  // 🔥 CARGA EN PARALELO (CLAVE)
-  const promises = ids.map(async id => {
-
-    if(!loadedCards[id]){
-      const res = await fetch(API_CARD + id);
-      const json = await res.json();
-      loadedCards[id] = json.data;
-    }
-
-    return loadedCards[id];
-  });
-
-  const cardsData = await Promise.all(promises);
+  inventory = JSON.parse(localStorage.getItem("inventory")) || {};
+  cache = JSON.parse(localStorage.getItem("cardsCache")) || {};
 
   let grouped = {};
 
-  cardsData.forEach(c=>{
+  Object.keys(inventory).forEach(id=>{
 
-    const inv = inventory[c.id];
+    const inv = inventory[id];
+    const c = cache[id];
 
-    if(inv && inv.stock && inv.qty > 0){
+    if(!c || !inv.stock || inv.qty <= 0) return;
 
-      const set = c.set.name;
-      const date = c.set.releaseDate || "2000-01-01";
-
-      if(!grouped[set]){
-        grouped[set] = {date, cards:[]};
-      }
-
-      grouped[set].cards.push({
-        id:c.id,
-        name:c.name,
-        img:c.images.small,
-        qty:inv.qty
-      });
+    if(!grouped[c.set]){
+      grouped[c.set] = {date:c.date, cards:[]};
     }
+
+    grouped[c.set].cards.push({
+      name:c.name,
+      img:c.img,
+      qty:inv.qty
+    });
+
   });
 
   let ordered = Object.keys(grouped).map(k=>({
@@ -163,16 +126,19 @@ async function loadAllStock(){
 
   ordered.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
-  allCards = ordered.flatMap(s=>s.cards);
-
   renderGrouped(ordered);
 }
 
-/* RENDER */
+/* ================= RENDER ================= */
 function renderGrouped(sets){
 
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
+
+  if(sets.length === 0){
+    grid.innerHTML = "<h3>No hay cartas en stock</h3>";
+    return;
+  }
 
   sets.forEach(set=>{
 
@@ -184,46 +150,16 @@ function renderGrouped(sets){
           <img src="${c.img}">
           <div>${c.name}</div>
           <div>Stock: ${c.qty}</div>
-          <button onclick="buy('${c.name}')">Comprar</button>
         </div>
       `;
     });
+
   });
 }
 
-/* FILTER */
-async function loadSet(id,name){
-  document.getElementById("title").innerText = name;
-
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${id}`);
-  const json = await res.json();
-
-  const filtered = json.data.filter(c=>inventory[c.id]?.stock);
-
-  render(filtered.map(c=>({
-    name:c.name,
-    img:c.images.small,
-    qty:inventory[c.id].qty
-  })));
-}
-
-function render(cards){
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  cards.forEach(c=>{
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${c.img}">
-        <div>${c.name}</div>
-        <div>Stock: ${c.qty}</div>
-      </div>
-    `;
-  });
-}
-
-/* SEARCH */
+/* ================= SEARCH ================= */
 function searchCards(){
+
   const q = document.getElementById("search").value.toLowerCase();
 
   if(!q){
@@ -231,45 +167,80 @@ function searchCards(){
     return;
   }
 
-  const matches = allCards.filter(c=>c.name.toLowerCase().includes(q));
-  render(matches);
+  let results = [];
+
+  Object.keys(inventory).forEach(id=>{
+    const c = cache[id];
+    if(c && c.name.toLowerCase().includes(q)){
+      results.push({
+        name:c.name,
+        img:c.img,
+        qty:inventory[id].qty
+      });
+    }
+  });
+
+  render(results);
 }
 
-/* ADMIN */
-async function loadAdminSets(){
-  const res = await fetch(API_SETS);
-  const json = await res.json();
-
-  document.getElementById("adminSet").innerHTML =
-    json.data.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
-
-  loadAdminSet();
+/* ================= ADMIN ================= */
+function loginAdmin(){
+  if(prompt("Clave") === "1234"){
+    document.getElementById("adminPanel").style.right = "0px";
+    loadAdmin();
+  }
 }
 
-async function loadAdminSet(){
-  const id = document.getElementById("adminSet").value;
-
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${id}`);
-  const json = await res.json();
+function loadAdmin(){
 
   const box = document.getElementById("adminCards");
   box.innerHTML = "";
 
-  json.data.forEach(c=>{
+  Object.keys(cache).slice(0,200).forEach(id=>{
 
-    const inv = inventory[c.id] || {stock:false, qty:1};
+    const c = cache[id];
+    const inv = inventory[id] || {stock:false, qty:1};
 
     box.innerHTML += `
-      <div>
-        <img src="${c.images.small}" width="80">
+      <div style="margin-bottom:8px;">
+        <img src="${c.img}" width="60">
         <div>${c.name}</div>
 
         <input type="checkbox"
           ${inv.stock ? "checked":""}
-          onchange="toggleStock('${c.id}')"> Stock
+          onchange="toggleStock('${id}')"> Stock
 
         <input type="number" value="${inv.qty}"
-          onchange="changeQty('${c.id}',this.value)">
+          onchange="changeQty('${id}',this.value)">
+      </div>
+    `;
+  });
+}
+
+function adminSearch(q){
+
+  const box = document.getElementById("adminCards");
+  box.innerHTML = "";
+
+  Object.keys(cache).forEach(id=>{
+
+    const c = cache[id];
+
+    if(!c.name.toLowerCase().includes(q.toLowerCase())) return;
+
+    const inv = inventory[id] || {stock:false, qty:1};
+
+    box.innerHTML += `
+      <div>
+        <img src="${c.img}" width="60">
+        <div>${c.name}</div>
+
+        <input type="checkbox"
+          ${inv.stock ? "checked":""}
+          onchange="toggleStock('${id}')">
+
+        <input type="number" value="${inv.qty}"
+          onchange="changeQty('${id}',this.value)">
       </div>
     `;
   });
@@ -290,11 +261,6 @@ function changeQty(id,q){
 function save(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
   loadAllStock();
-}
-
-/* BUY */
-function buy(name){
-  window.open("https://wa.me/57TU_NUMERO?text="+name);
 }
 
 </script>
