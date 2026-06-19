@@ -343,7 +343,23 @@ function login(){
 
 function openAdmin(){
   document.getElementById("adminPanel").style.right="0px";
-  loadGlobalAdmin();
+ async function loadGlobalAdmin(){
+
+  const box = document.getElementById("adminContent");
+  box.innerHTML = "";
+
+  box.innerHTML = `<h3>Selecciona un set para cargar cartas</h3>`;
+
+  const select = document.createElement("select");
+
+  select.innerHTML = setsData.map(s=>
+    `<option value="${s.id}">${s.name}</option>`
+  ).join("");
+
+  select.onchange = ()=> loadSetAdmin(select.value);
+
+  box.appendChild(select);
+}
 }
 
 /* ================= V11 ADMIN GLOBAL ================= */
