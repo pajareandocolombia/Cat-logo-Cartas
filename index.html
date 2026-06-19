@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V9 ⚡</title>
+<title>Tienda Pokémon PRO V9.5 🛒</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -10,13 +10,97 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
 .admin-btn{background:#f59e0b;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
 .search{padding:10px;background:#111827;}
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
+
 .container{display:flex;}
 .main{flex:1;padding:10px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
-.card{background:#1e293b;padding:8px;border-radius:10px;}
-.card img{width:100%;}
-button{width:100%;margin-top:5px;padding:6px;border:none;border-radius:6px;background:#22c55e;color:white;}
 
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+}
+
+.card{
+  background:#1e293b;
+  padding:8px;
+  border-radius:10px;
+  transition:0.25s;
+  position:relative;
+  overflow:hidden;
+}
+
+.card:hover{
+  transform:translateY(-5px) scale(1.02);
+  box-shadow:0 10px 25px rgba(0,0,0,0.5);
+}
+
+.card img{
+  width:100%;
+  transition:0.3s;
+}
+
+.card:hover img{
+  transform:scale(1.2);
+}
+
+button{
+  width:100%;
+  margin-top:5px;
+  padding:6px;
+  border:none;
+  border-radius:6px;
+  background:#22c55e;
+  color:white;
+  cursor:pointer;
+}
+
+/* BADGES */
+.badge{
+  position:absolute;
+  top:6px;
+  left:6px;
+  padding:3px 6px;
+  font-size:10px;
+  border-radius:6px;
+}
+.badge.green{background:#22c55e;}
+.badge.red{background:#ef4444;}
+
+/* DIVIDER */
+.divider{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#1e3a8a,#0ea5e9);
+  border:2px dashed #60a5fa;
+}
+.divider img{width:80px;margin-bottom:5px;}
+.divider-title{font-size:12px;text-align:center;}
+
+/* CART */
+#cartFloating{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#22c55e;
+  padding:12px;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:18px;
+}
+
+#cartPanel{
+  position:fixed;
+  right:-350px;
+  top:0;
+  width:300px;
+  height:100%;
+  background:#020617;
+  padding:10px;
+  transition:0.3s;
+}
+
+/* ADMIN */
 #adminPanel{
 position:fixed;top:0;right:-400px;width:400px;height:100%;
 background:#020617;overflow:auto;padding:10px;transition:0.3s;
@@ -27,7 +111,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V9 ⚡</div>
+  <div>🃏 Tienda Pokémon PRO V9.5</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -42,6 +126,19 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
   </div>
 </div>
 
+<!-- CARRITO -->
+<div id="cartFloating" onclick="toggleCart()">
+  🛒 <span id="cartCount">0</span>
+</div>
+
+<div id="cartPanel">
+  <h3>🛒 Carrito</h3>
+  <div id="cartItems"></div>
+  <h4 id="cartTotal">Total: 0</h4>
+  <button onclick="checkout()">Comprar</button>
+</div>
+
+<!-- ADMIN -->
 <div id="adminPanel">
   <h2>🛠️ Panel Admin</h2>
   <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
@@ -57,18 +154,17 @@ let inventory = {};
 let cardCache = {};
 let setsData = [];
 let allCards = [];
+let cart = [];
 
-/* ================= INIT ================= */
+/* INIT */
 document.addEventListener("DOMContentLoaded", async () => {
-
   inventory = JSON.parse(localStorage.getItem("inventory")) || {};
   cardCache = JSON.parse(localStorage.getItem("cardCache")) || {};
-
   await loadSets();
   loadAllStock();
 });
 
-/* ================= ADMIN ================= */
+/* ADMIN */
 function loginAdmin(){
   const pass = prompt("Contraseña admin:");
   if(pass === "1234"){
@@ -77,14 +173,14 @@ function loginAdmin(){
   }
 }
 
-/* ================= LOAD SETS ================= */
+/* LOAD SETS */
 async function loadSets(){
   const res = await fetch(API_SETS);
   const json = await res.json();
   setsData = json.data;
 }
 
-/* ================= ⚡ LOAD STOCK OPTIMIZADO ================= */
+/* LOAD STOCK */
 async function loadAllStock(){
 
   document.getElementById("title").innerText = "Cartas disponibles";
@@ -98,9 +194,7 @@ async function loadAllStock(){
 
   let missing = ids.filter(id => !cardCache[id]);
 
-  // 🔥 solo pedir las que no están en cache
   if(missing.length > 0){
-
     const query = missing.map(id => `id:${id}`).join(" OR ");
     const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${query}`);
     const json = await res.json();
@@ -109,7 +203,8 @@ async function loadAllStock(){
       cardCache[c.id] = {
         name: c.name,
         img: c.images.small,
-        set: c.set.name
+        set: c.set.name,
+        logo: c.set.images.logo
       };
     });
 
@@ -120,7 +215,6 @@ async function loadAllStock(){
   allCards = [];
 
   ids.forEach(id=>{
-
     const data = cardCache[id];
     const inv = inventory[id];
 
@@ -129,7 +223,8 @@ async function loadAllStock(){
     const item = {
       name: data.name,
       img: data.img,
-      qty: inv.qty
+      qty: inv.qty,
+      logo: data.logo
     };
 
     grouped[data.set].push(item);
@@ -139,32 +234,48 @@ async function loadAllStock(){
   renderGrouped(grouped);
 }
 
-/* ================= RENDER ================= */
+/* RENDER CONTINUO */
 function renderGrouped(grouped){
 
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
 
-  Object.keys(grouped).forEach(set=>{
+  Object.keys(grouped).forEach(setName=>{
 
-    grid.innerHTML += `<h3 style="grid-column:1/-1;color:#60a5fa;">📦 ${set}</h3>`;
+    const first = grouped[setName][0];
 
-    grouped[set].forEach(c=>{
+    grid.innerHTML += `
+      <div class="card divider">
+        <div>
+          <img src="${first.logo}">
+          <div class="divider-title">${setName}</div>
+        </div>
+      </div>
+    `;
+
+    grouped[setName].forEach(c=>{
+
+      const badge =
+        c.qty <= 2
+          ? `<div class="badge red">Últimas</div>`
+          : `<div class="badge green">Disponible</div>`;
+
       grid.innerHTML += `
         <div class="card">
+          ${badge}
           <img src="${c.img}">
           <div>${c.name}</div>
           <div>Stock: ${c.qty}</div>
-          <button onclick="buy('${c.name}')">Comprar</button>
+          <button onclick="addToCart('${c.name}')">Agregar</button>
         </div>
       `;
     });
+
   });
 }
 
-/* ================= SEARCH ================= */
+/* SEARCH */
 function searchCards(){
-
   const q = document.getElementById("search").value.toLowerCase();
 
   if(!q){
@@ -194,12 +305,53 @@ function render(cards){
   });
 }
 
-/* ================= ADMIN ================= */
-async function loadAdminSets(){
+/* CART */
+function addToCart(name){
+  const existing = cart.find(i=>i.name===name);
+  if(existing) existing.qty++;
+  else cart.push({name, qty:1});
+  updateCart();
+}
 
+function updateCart(){
+  document.getElementById("cartCount").innerText =
+    cart.reduce((a,b)=>a+b.qty,0);
+
+  const box = document.getElementById("cartItems");
+  box.innerHTML = "";
+
+  let total = 0;
+
+  cart.forEach(i=>{
+    box.innerHTML += `<div>${i.name} x${i.qty}</div>`;
+    total += i.qty;
+  });
+
+  document.getElementById("cartTotal").innerText =
+    "Total items: " + total;
+}
+
+function toggleCart(){
+  const panel = document.getElementById("cartPanel");
+  panel.style.right = panel.style.right === "0px" ? "-350px" : "0px";
+}
+
+function checkout(){
+  if(cart.length === 0) return;
+
+  let text = "Pedido:%0A";
+
+  cart.forEach(i=>{
+    text += `- ${i.name} x${i.qty}%0A`;
+  });
+
+  window.open("https://wa.me/57TU_NUMERO?text=" + text);
+}
+
+/* ADMIN */
+async function loadAdminSets(){
   document.getElementById("adminSet").innerHTML =
     setsData.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
-
   loadAdminSet();
 }
 
@@ -234,11 +386,7 @@ async function loadAdminSet(){
 }
 
 function toggleStock(id,setName){
-
-  if(!inventory[id]){
-    inventory[id]={stock:false,qty:1,set:setName};
-  }
-
+  if(!inventory[id]) inventory[id]={stock:false,qty:1,set:setName};
   inventory[id].stock=!inventory[id].stock;
   save();
 }
@@ -252,11 +400,6 @@ function changeQty(id,q){
 function save(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
   loadAllStock();
-}
-
-/* ================= BUY ================= */
-function buy(name){
-  window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(name));
 }
 
 </script>
