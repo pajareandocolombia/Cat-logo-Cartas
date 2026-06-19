@@ -2,19 +2,17 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V8.4</title>
+<title>Tienda Pokémon PRO V8.5</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
 header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-between;}
 .admin-btn{background:#f59e0b;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
-.search{padding:10px;background:#111827;position:relative;}
+.search{padding:10px;background:#111827;}
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
-.suggestions{position:absolute;top:45px;left:10px;right:10px;background:#1e293b;max-height:200px;overflow:auto;}
 .container{display:flex;}
 .sets{width:220px;height:100vh;overflow:auto;background:#111827;padding:8px;}
-.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;font-size:12px;}
-.set img{width:100%;}
+.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;}
 .main{flex:1;padding:10px;}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
 .card{background:#1e293b;padding:8px;border-radius:10px;}
@@ -32,13 +30,12 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V8.4</div>
+  <div>🃏 Tienda Pokémon PRO V8.5</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
 <div class="search">
   <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
-  <div id="suggestions" class="suggestions"></div>
 </div>
 
 <div class="container">
@@ -48,15 +45,15 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 </div>
 
 <div class="main">
-  <h3 id="title">Cargando...</h3>
+  <h3 id="title">Cargando stock...</h3>
   <div class="grid" id="grid"></div>
 </div>
 
 </div>
 
 <div id="adminPanel">
-  <h2>🛠️ Panel Admin</h2>
-  <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
+  <h2>🛠️ Admin</h2>
+  <select id="adminSet" onchange="loadAdminSet()" style="width:100%"></select>
   <div id="adminCards"></div>
 </div>
 
@@ -69,32 +66,26 @@ let inventory = {};
 let allCards = [];
 let loadedCards = {};
 
-/* ================= INIT ================= */
+/* INIT */
 document.addEventListener("DOMContentLoaded", async () => {
 
-  const saved = localStorage.getItem("inventory");
-  inventory = saved ? JSON.parse(saved) : {};
+  inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 
   await loadSets();
 
-  setTimeout(()=>{
-    loadAllStock();
-  },300);
-
+  loadAllStock(); // 🔥 SIN TIMEOUT
 });
 
-/* ================= ADMIN ================= */
+/* ADMIN */
 function loginAdmin(){
-  const pass = prompt("Contraseña admin:");
-  if(pass === "1234"){
+  if(prompt("Clave") === "1234"){
     document.getElementById("adminPanel").style.right = "0px";
     loadAdminSets();
   }
 }
 
-/* ================= SETS MENU ================= */
+/* LOAD SETS */
 async function loadSets(){
-
   const res = await fetch(API_SETS);
   const json = await res.json();
 
@@ -107,38 +98,27 @@ async function loadSets(){
   sets.forEach(s=>{
     const div = document.createElement("div");
     div.className = "set";
-
-    div.innerHTML = `
-      <img src="${s.images.logo}">
-      <div>${s.name}</div>
-    `;
-
+    div.innerHTML = `<div>${s.name}</div>`;
     div.onclick = ()=> loadSet(s.id, s.name);
-
     box.appendChild(div);
   });
 }
 
-/* ================= 🔥 LOAD STOCK ================= */
+/* 🔥 LOAD STOCK FIX REAL */
 async function loadAllStock(){
 
-  document.getElementById("title").innerText =
-    "Todas las cartas en stock";
-
-  const saved = localStorage.getItem("inventory");
-  inventory = saved ? JSON.parse(saved) : {};
+  document.getElementById("title").innerText = "Todas las cartas en stock";
 
   const ids = Object.keys(inventory);
 
   if(ids.length === 0){
     document.getElementById("grid").innerHTML =
-      "<h3>No hay cartas en stock (activa desde admin)</h3>";
+      "<h3>No hay cartas en stock</h3>";
     return;
   }
 
-  let grouped = {};
-
-  for(const id of ids){
+  // 🔥 CARGA EN PARALELO (CLAVE)
+  const promises = ids.map(async id => {
 
     if(!loadedCards[id]){
       const res = await fetch(API_CARD + id);
@@ -146,46 +126,49 @@ async function loadAllStock(){
       loadedCards[id] = json.data;
     }
 
-    const c = loadedCards[id];
-    const inv = inventory[id];
+    return loadedCards[id];
+  });
 
-    if(inv.stock && inv.qty > 0){
+  const cardsData = await Promise.all(promises);
 
-      const setName = c.set.name;
-      const releaseDate = c.set.releaseDate || "2000-01-01";
+  let grouped = {};
 
-      if(!grouped[setName]){
-        grouped[setName] = {
-          releaseDate,
-          cards:[]
-        };
+  cardsData.forEach(c=>{
+
+    const inv = inventory[c.id];
+
+    if(inv && inv.stock && inv.qty > 0){
+
+      const set = c.set.name;
+      const date = c.set.releaseDate || "2000-01-01";
+
+      if(!grouped[set]){
+        grouped[set] = {date, cards:[]};
       }
 
-      grouped[setName].cards.push({
+      grouped[set].cards.push({
         id:c.id,
         name:c.name,
         img:c.images.small,
         qty:inv.qty
       });
     }
-  }
+  });
 
   let ordered = Object.keys(grouped).map(k=>({
     name:k,
-    releaseDate:grouped[k].releaseDate,
+    date:grouped[k].date,
     cards:grouped[k].cards
   }));
 
-  ordered.sort((a,b)=>
-    new Date(b.releaseDate) - new Date(a.releaseDate)
-  );
+  ordered.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
   allCards = ordered.flatMap(s=>s.cards);
 
   renderGrouped(ordered);
 }
 
-/* ================= RENDER ================= */
+/* RENDER */
 function renderGrouped(sets){
 
   const grid = document.getElementById("grid");
@@ -193,11 +176,7 @@ function renderGrouped(sets){
 
   sets.forEach(set=>{
 
-    grid.innerHTML += `
-      <h3 style="grid-column:1/-1;border-bottom:1px solid #334155;">
-        ${set.name}
-      </h3>
-    `;
+    grid.innerHTML += `<h3 style="grid-column:1/-1">${set.name}</h3>`;
 
     set.cards.forEach(c=>{
       grid.innerHTML += `
@@ -209,28 +188,23 @@ function renderGrouped(sets){
         </div>
       `;
     });
-
   });
 }
 
-/* ================= FILTER SET ================= */
-async function loadSet(setId, name){
-
+/* FILTER */
+async function loadSet(id,name){
   document.getElementById("title").innerText = name;
 
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}`);
+  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${id}`);
   const json = await res.json();
 
-  const filtered = json.data
-    .filter(c => inventory[c.id]?.stock)
-    .map(c=>({
-      id:c.id,
-      name:c.name,
-      img:c.images.small,
-      qty:inventory[c.id]?.qty || 1
-    }));
+  const filtered = json.data.filter(c=>inventory[c.id]?.stock);
 
-  render(filtered);
+  render(filtered.map(c=>({
+    name:c.name,
+    img:c.images.small,
+    qty:inventory[c.id].qty
+  })));
 }
 
 function render(cards){
@@ -243,44 +217,26 @@ function render(cards){
         <img src="${c.img}">
         <div>${c.name}</div>
         <div>Stock: ${c.qty}</div>
-        <button onclick="buy('${c.name}')">Comprar</button>
       </div>
     `;
   });
 }
 
-/* ================= SEARCH ================= */
+/* SEARCH */
 function searchCards(){
-
   const q = document.getElementById("search").value.toLowerCase();
-  const box = document.getElementById("suggestions");
 
-  if(q.length === 0){
-    box.innerHTML = "";
+  if(!q){
     loadAllStock();
     return;
   }
 
-  const matches = allCards.filter(c=>
-    c.name.toLowerCase().includes(q)
-  );
-
-  box.innerHTML = matches.slice(0,8).map(m=>
-    `<div onclick="selectSearch('${m.name}')">${m.name}</div>`
-  ).join("");
-
+  const matches = allCards.filter(c=>c.name.toLowerCase().includes(q));
   render(matches);
 }
 
-function selectSearch(name){
-  document.getElementById("search").value="";
-  document.getElementById("suggestions").innerHTML="";
-  render(allCards.filter(c=>c.name===name));
-}
-
-/* ================= ADMIN ================= */
+/* ADMIN */
 async function loadAdminSets(){
-
   const res = await fetch(API_SETS);
   const json = await res.json();
 
@@ -291,10 +247,9 @@ async function loadAdminSets(){
 }
 
 async function loadAdminSet(){
+  const id = document.getElementById("adminSet").value;
 
-  const setId = document.getElementById("adminSet").value;
-
-  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}`);
+  const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${id}`);
   const json = await res.json();
 
   const box = document.getElementById("adminCards");
@@ -305,20 +260,16 @@ async function loadAdminSet(){
     const inv = inventory[c.id] || {stock:false, qty:1};
 
     box.innerHTML += `
-      <div style="background:#1e293b;margin-bottom:8px;padding:6px;border-radius:6px;">
-        <img src="${c.images.small}" style="width:80px">
+      <div>
+        <img src="${c.images.small}" width="80">
         <div>${c.name}</div>
 
-        <label>
-          <input type="checkbox"
-            ${inv.stock ? "checked" : ""}
-            onchange="toggleStock('${c.id}')">
-          En stock
-        </label>
+        <input type="checkbox"
+          ${inv.stock ? "checked":""}
+          onchange="toggleStock('${c.id}')"> Stock
 
         <input type="number" value="${inv.qty}"
-          onchange="changeQty('${c.id}', this.value)"
-          style="width:60px">
+          onchange="changeQty('${c.id}',this.value)">
       </div>
     `;
   });
@@ -327,31 +278,23 @@ async function loadAdminSet(){
 function toggleStock(id){
   if(!inventory[id]) inventory[id]={stock:false,qty:1};
   inventory[id].stock=!inventory[id].stock;
-  saveInventory();
+  save();
 }
 
-function changeQty(id,qty){
+function changeQty(id,q){
   if(!inventory[id]) inventory[id]={stock:true,qty:1};
-  inventory[id].qty=parseInt(qty)||1;
-  saveInventory();
+  inventory[id].qty=parseInt(q)||1;
+  save();
 }
 
-function saveInventory(){
-
-  Object.keys(inventory).forEach(id=>{
-    if(!inventory[id].stock){
-      delete inventory[id];
-    }
-  });
-
+function save(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
-
   loadAllStock();
 }
 
-/* ================= BUY ================= */
+/* BUY */
 function buy(name){
-  window.open("https://wa.me/57TU_NUMERO?text=Quiero%20"+encodeURIComponent(name));
+  window.open("https://wa.me/57TU_NUMERO?text="+name);
 }
 
 </script>
