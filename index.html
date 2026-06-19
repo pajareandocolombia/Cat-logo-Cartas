@@ -21,7 +21,6 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
   gap:10px;
 }
 
-/* CARD */
 .card{
   background:#1e293b;
   padding:8px;
@@ -45,7 +44,6 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
   transform:scale(1.15);
 }
 
-/* BUTTON */
 button{
   width:100%;
   margin-top:5px;
@@ -78,15 +76,8 @@ button{
   border:2px dashed #60a5fa;
   text-align:center;
 }
-
-.divider img{
-  width:60px;
-  margin-bottom:5px;
-}
-
-.divider-title{
-  font-size:12px;
-}
+.divider img{width:60px;margin-bottom:5px;}
+.divider-title{font-size:12px;}
 
 /* CART */
 #cartFloating{
@@ -167,7 +158,14 @@ let inventory = {};
 let cardCache = {};
 let setsData = [];
 let allCards = [];
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+/* ===================== 🔥 FIX CARRO ===================== */
+let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+/* SAVE CART (ÚNICA FUENTE DE VERDAD) */
+function saveCart(){
+  localStorage.setItem("cart", JSON.stringify(cart));
+}
 
 /* INIT */
 document.addEventListener("DOMContentLoaded", async () => {
@@ -177,7 +175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadSets();
   loadAllStock();
-  updateCart();
+  updateCart(); // 🔥 importante
 });
 
 /* LOAD SETS */
@@ -219,7 +217,6 @@ async function loadAllStock(){
   }
 
   let grouped = {};
-  allCards = [];
 
   ids.forEach(id=>{
     const data = cardCache[id];
@@ -281,42 +278,13 @@ function renderGrouped(grouped){
   });
 }
 
-/* SEARCH */
-function searchCards(){
-
-  const q = document.getElementById("search").value.toLowerCase();
-
-  if(!q){
-    loadAllStock();
-    return;
-  }
-
-  const results = [];
-
-  Object.values(cardCache).forEach(c=>{
-    if(c.name.toLowerCase().includes(q)){
-      results.push(c);
-    }
-  });
-
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  results.forEach(c=>{
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${c.img}">
-        <div>${c.name}</div>
-      </div>
-    `;
-  });
-}
-
-/* CART */
+/* ===================== 🛒 FIX CARRITO ===================== */
 function addToCart(id){
 
   const inv = inventory[id];
   const data = cardCache[id];
+
+  if(!data) return;
 
   const existing = cart.find(i=>i.id===id);
 
@@ -331,18 +299,16 @@ function addToCart(id){
     });
   }
 
-  saveCart();
   updateCart();
+  saveCart(); // 🔥 SIEMPRE GUARDAR
 
   document.getElementById("cartPanel").style.right = "-350px";
 }
 
 function updateCart(){
 
-  localStorage.setItem("cart", JSON.stringify(cart));
-
   const totalQty = cart.reduce((a,b)=>a+b.qty,0);
-  const totalPrice = cart.reduce((a,b)=>a + b.qty*b.price,0);
+  const totalPrice = cart.reduce((a,b)=>a + (b.qty*b.price),0);
 
   document.getElementById("cartCount").innerText = totalQty;
 
@@ -362,11 +328,13 @@ function updateCart(){
     "Total: $" + totalPrice;
 }
 
+/* CART UI */
 function toggleCart(){
   const panel = document.getElementById("cartPanel");
   panel.style.right = panel.style.right === "0px" ? "-350px" : "0px";
 }
 
+/* CHECKOUT */
 function checkout(){
 
   if(cart.length === 0) return;
@@ -387,69 +355,6 @@ function checkout(){
   saveCart();
   updateCart();
   document.getElementById("cartPanel").style.right = "-350px";
-}
-
-/* ADMIN */
-async function loadAdminSets(){
-  const res = await fetch(API_SETS);
-  const json = await res.json();
-
-  setsData = json.data;
-
-  document.getElementById("adminSet").innerHTML =
-    setsData.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
-
-  loadAdminSet();
-}
-
-async function loadAdminSet(){
-
-  const setId = document.getElementById("adminSet").value;
-
-  const res = await fetch(API_SET_CARDS + setId);
-  const json = await res.json();
-
-  const box = document.getElementById("adminCards");
-  box.innerHTML = "";
-
-  json.data.forEach(c=>{
-
-    const inv = inventory[c.id] || {stock:false, qty:1, price:0};
-
-    box.innerHTML += `
-      <div style="margin-bottom:10px;">
-        <img src="${c.images.small}" width="80">
-
-        <div>${c.name}</div>
-
-        <input type="checkbox"
-          ${inv.stock ? "checked":""}
-          onchange="toggleStock('${c.id}','${c.set.name}')"> Stock
-
-        <input type="number"
-          placeholder="Precio"
-          value="${inv.price}"
-          onchange="setPrice('${c.id}',this.value)">
-      </div>
-    `;
-  });
-}
-
-function toggleStock(id,setName){
-  if(!inventory[id]) inventory[id]={stock:false,qty:1,set:setName,price:0};
-  inventory[id].stock = !inventory[id].stock;
-  save();
-}
-
-function setPrice(id,price){
-  if(!inventory[id]) inventory[id]={stock:false,qty:1,price:0};
-  inventory[id].price = parseFloat(price)||0;
-  save();
-}
-
-function save(){
-  localStorage.setItem("inventory", JSON.stringify(inventory));
-  loadAllStock();
 }
 
 </script>
