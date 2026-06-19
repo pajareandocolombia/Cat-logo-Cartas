@@ -2,12 +2,26 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V10.2 🛒</title>
+<title>Tienda Pokémon PRO V11</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-between;align-items:center;}
-.admin-btn{background:#f59e0b;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
+
+header{
+  background:#1e3a8a;
+  padding:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.admin-btn{
+  background:#f59e0b;
+  border:none;
+  padding:6px 10px;
+  border-radius:6px;
+  cursor:pointer;
+}
 
 .search{padding:10px;background:#111827;}
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
@@ -25,24 +39,16 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
   background:#1e293b;
   padding:8px;
   border-radius:10px;
-  transition:0.25s;
+  transition:0.2s;
   position:relative;
-  overflow:hidden;
 }
 
 .card:hover{
-  transform:translateY(-5px) scale(1.02);
+  transform:scale(1.03);
   box-shadow:0 10px 25px rgba(0,0,0,0.5);
 }
 
-.card img{
-  width:100%;
-  transition:0.3s;
-}
-
-.card:hover img{
-  transform:scale(1.15);
-}
+.card img{width:100%;}
 
 button{
   width:100%;
@@ -54,18 +60,6 @@ button{
   color:white;
   cursor:pointer;
 }
-
-/* BADGES */
-.badge{
-  position:absolute;
-  top:6px;
-  left:6px;
-  padding:3px 6px;
-  font-size:10px;
-  border-radius:6px;
-}
-.badge.green{background:#22c55e;}
-.badge.red{background:#ef4444;}
 
 /* CART */
 #cartFloating{
@@ -87,56 +81,41 @@ button{
   height:100%;
   background:#020617;
   padding:10px;
-  transition:0.25s;
+  transition:0.3s;
   z-index:9999;
 }
 
 /* ADMIN */
 #adminPanel{
-position:fixed;
-top:0;
-right:-400px;
-width:400px;
-height:100%;
-background:#020617;
-overflow:auto;
-padding:10px;
-transition:0.3s;
-z-index:9999;
-}
-
-/* LOGIN */
-#loginOverlay{
   position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.7);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:10000;
+  top:0;
+  right:-450px;
+  width:450px;
+  height:100%;
+  background:#020617;
+  overflow:auto;
+  padding:10px;
+  transition:0.3s;
+  z-index:9999;
 }
 
-#loginBox{
-  background:#1e293b;
-  padding:20px;
-  border-radius:10px;
-  width:280px;
-}
-
-#loginBox input{
-  width:100%;
-  padding:8px;
-  margin:10px 0;
-  border:none;
+.badge{
+  position:absolute;
+  top:5px;
+  left:5px;
+  font-size:10px;
+  padding:3px 6px;
   border-radius:6px;
+  background:#22c55e;
 }
+.badge.red{background:#ef4444;}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V10.2</div>
+  <div>🃏 Tienda Pokémon PRO V11</div>
   <button class="admin-btn" onclick="openLogin()">Admin</button>
 </header>
 
@@ -146,16 +125,18 @@ z-index:9999;
 
 <div class="container">
   <div class="main">
-    <h3 id="title">Cargando...</h3>
+    <h3 id="title">Stock disponible</h3>
     <div class="grid" id="grid"></div>
   </div>
 </div>
 
 <!-- CART -->
-<div id="cartFloating" onclick="toggleCart()">🛒 <span id="cartCount">0</span></div>
+<div id="cartFloating" onclick="toggleCart()">
+  🛒 <span id="cartCount">0</span>
+</div>
 
 <div id="cartPanel">
-  <h3>🛒 Carrito</h3>
+  <h3>Carrito</h3>
   <div id="cartItems"></div>
   <h4 id="cartTotal">Total: $0</h4>
   <button onclick="checkout()">Comprar</button>
@@ -163,35 +144,39 @@ z-index:9999;
 
 <!-- ADMIN -->
 <div id="adminPanel">
-  <h2>🛠️ Admin</h2>
+  <h2>🛠️ ADMIN V11</h2>
   <button onclick="logoutAdmin()" style="background:#ef4444;">Logout</button>
   <div id="adminContent"></div>
 </div>
 
 <!-- LOGIN -->
-<div id="loginOverlay">
-  <div id="loginBox">
-    <h3>🔐 Admin Login</h3>
-    <input id="pass" type="password" placeholder="Contraseña">
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+  <div style="background:#1e293b;padding:20px;border-radius:10px;width:280px;">
+    <h3>Login Admin</h3>
+    <input id="pass" type="password" placeholder="Contraseña" style="width:100%;padding:8px;">
     <button onclick="login()">Entrar</button>
   </div>
 </div>
 
 <script>
 
-/* ================= SAFE INIT ================= */
+/* ================= DATA ================= */
+const API_SETS = "https://api.pokemontcg.io/v2/sets";
+const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
+
 let inventory = JSON.parse(localStorage.getItem("inventory") || "{}");
 let cardCache = JSON.parse(localStorage.getItem("cardCache") || "{}");
 let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
 let setsData = [];
+let globalCards = [];
 
-/* ================= SAVE HELPERS ================= */
-function saveCart(){
-  localStorage.setItem("cart", JSON.stringify(cart));
-}
-
+/* ================= SAVE ================= */
 function saveInventory(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
+}
+function saveCart(){
+  localStorage.setItem("cart", JSON.stringify(cart));
 }
 
 /* ================= INIT ================= */
@@ -205,54 +190,40 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   }
 });
 
-/* ================= API ================= */
-const API_SETS = "https://api.pokemontcg.io/v2/sets";
-const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
-
+/* ================= SETS ================= */
 async function loadSets(){
-  try{
-    const r = await fetch(API_SETS);
-    const j = await r.json();
-    setsData = j.data || [];
-  }catch(e){
-    setsData = [];
-  }
+  const r = await fetch(API_SETS);
+  const j = await r.json();
+  setsData = j.data || [];
 }
 
-/* ================= STOCK ================= */
+/* ================= STOCK FRONT ================= */
 async function loadAllStock(){
 
   const ids = Object.keys(inventory).filter(i=>inventory[i].stock);
-
-  if(ids.length === 0){
-    document.getElementById("grid").innerHTML = "<h3>No hay stock</h3>";
-    return;
-  }
 
   let grouped = {};
 
   ids.forEach(id=>{
     const inv = inventory[id];
-    const cache = cardCache[id];
+    const c = cardCache[id];
+    if(!c) return;
 
-    if(!cache) return;
+    if(!grouped[c.set]) grouped[c.set] = [];
 
-    if(!grouped[cache.set]) grouped[cache.set] = [];
-
-    grouped[cache.set].push({
+    grouped[c.set].push({
       id,
-      name: cache.name,
-      img: cache.img,
-      qty: inv.qty || 1,
+      name: c.name,
+      img: c.img,
       price: inv.price || 0,
-      logo: cache.logo
+      qty: inv.qty || 1
     });
   });
 
   render(grouped);
 }
 
-/* ================= RENDER ================= */
+/* ================= RENDER FRONT ================= */
 function render(grouped){
 
   const grid = document.getElementById("grid");
@@ -260,24 +231,16 @@ function render(grouped){
 
   Object.keys(grouped).forEach(set=>{
 
-    const first = grouped[set][0];
-
     grid.innerHTML += `
       <div class="card" style="background:#1e3a8a;text-align:center;">
-        ${first.logo ? `<img src="${first.logo}" style="width:60px;">` : ""}
         <div>${set}</div>
       </div>
     `;
 
     grouped[set].forEach(c=>{
 
-      const badge = c.qty <= 2
-        ? `<div class="badge red">Últimas</div>`
-        : `<div class="badge green">OK</div>`;
-
       grid.innerHTML += `
         <div class="card">
-          ${badge}
           <img src="${c.img}">
           <div>${c.name}</div>
           <div>$${c.price}</div>
@@ -289,43 +252,44 @@ function render(grouped){
   });
 }
 
-/* ================= CART (FIX FINAL ROBUSTO) ================= */
+/* ================= CART ================= */
 function addToCart(id){
 
   const inv = inventory[id];
-  const data = cardCache[id];
-  if(!inv || !data) return;
+  const c = cardCache[id];
 
-  const existing = cart.find(i=>i.id===id);
+  if(!inv || !c) return;
 
-  if(existing){
-    existing.qty++;
+  const ex = cart.find(i=>i.id===id);
+
+  if(ex){
+    ex.qty++;
   }else{
     cart.push({
       id,
-      name: data.name,
-      price: inv.price || 0,
-      qty: 1
+      name:c.name,
+      price:inv.price || 0,
+      qty:1
     });
   }
 
   saveCart();
   updateCart();
-
-  document.getElementById("cartPanel").style.right = "-350px";
+  document.getElementById("cartPanel").style.right="-350px";
 }
 
 function updateCart(){
 
-  const totalQty = cart.reduce((a,b)=>a+b.qty,0);
-  const totalPrice = cart.reduce((a,b)=>a+b.qty*b.price,0);
+  let total = 0;
 
-  document.getElementById("cartCount").innerText = totalQty;
+  document.getElementById("cartCount").innerText =
+    cart.reduce((a,b)=>a+b.qty,0);
 
   const box = document.getElementById("cartItems");
   box.innerHTML = "";
 
   cart.forEach(i=>{
+    total += i.qty*i.price;
     box.innerHTML += `
       <div style="display:flex;justify-content:space-between;">
         <span>${i.name} x${i.qty}</span>
@@ -335,59 +299,154 @@ function updateCart(){
   });
 
   document.getElementById("cartTotal").innerText =
-    "Total: $" + totalPrice;
+    "Total: $" + total;
 }
 
 /* ================= CART UI ================= */
 function toggleCart(){
-  const p = document.getElementById("cartPanel");
-  p.style.right = p.style.right === "0px" ? "-350px" : "0px";
+  const p=document.getElementById("cartPanel");
+  p.style.right = p.style.right==="0px"?"-350px":"0px";
 }
 
 /* ================= CHECKOUT ================= */
 function checkout(){
 
-  let text = "🛒 Pedido:%0A";
-  let total = 0;
+  let text="Pedido:%0A";
+  let total=0;
 
   cart.forEach(i=>{
-    text += `- ${i.name} x${i.qty} = $${i.qty*i.price}%0A`;
-    total += i.qty*i.price;
+    total+=i.qty*i.price;
+    text+=`- ${i.name} x${i.qty} = $${i.qty*i.price}%0A`;
   });
 
-  text += `%0ATotal: $${total}`;
+  text+=`%0ATotal: $${total}`;
 
   window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(text));
 
-  cart = [];
+  cart=[];
   saveCart();
   updateCart();
 }
 
-/* ================= ADMIN LOGIN ================= */
+/* ================= ADMIN ================= */
 function openLogin(){
-  document.getElementById("loginOverlay").style.display = "flex";
+  document.getElementById("loginOverlay").style.display="flex";
 }
 
 function login(){
-  const p = document.getElementById("pass").value;
-
-  if(p === "1234"){
+  if(document.getElementById("pass").value==="1234"){
     localStorage.setItem("admin","true");
-    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("loginOverlay").style.display="none";
     openAdmin();
   }
 }
 
 function openAdmin(){
-  document.getElementById("adminPanel").style.right = "0px";
-  document.getElementById("adminContent").innerHTML =
-    "<p>Panel activo</p>";
+  document.getElementById("adminPanel").style.right="0px";
+  loadGlobalAdmin();
+}
+
+/* ================= V11 ADMIN GLOBAL ================= */
+async function loadGlobalAdmin(){
+
+  const box=document.getElementById("adminContent");
+  box.innerHTML="Cargando...";
+
+  let all=[];
+
+  for(const s of setsData){
+    try{
+      const r=await fetch(API_CARDS+s.id);
+      const j=await r.json();
+
+      j.data.forEach(c=>{
+        all.push({
+          id:c.id,
+          name:c.name,
+          img:c.images.small,
+          set:c.set.name
+        });
+      });
+
+    }catch(e){}
+  }
+
+  globalCards=all;
+
+  renderAdmin(all);
+}
+
+function renderAdmin(cards){
+
+  const box=document.getElementById("adminContent");
+  box.innerHTML="";
+
+  box.innerHTML+=`
+    <input placeholder="Buscar..."
+      oninput="filterAdmin(this.value)"
+      style="width:100%;padding:8px;">
+  `;
+
+  cards.forEach(c=>{
+
+    const inv=inventory[c.id]||{stock:false,price:0};
+
+    box.innerHTML+=`
+      <div style="background:#1e293b;margin:10px 0;padding:8px;border-radius:10px;">
+
+        <img src="${c.img}" width="70">
+
+        <div>${c.name}</div>
+        <div style="font-size:12px;">${c.set}</div>
+
+        <label>
+          <input type="checkbox"
+            ${inv.stock?"checked":""}
+            onchange="toggleStock('${c.id}','${c.name}','${c.img}','${c.set}')">
+          Stock
+        </label>
+
+        <input type="number"
+          value="${inv.price||0}"
+          onchange="setPrice('${c.id}',this.value)"
+          style="width:100%;">
+
+      </div>
+    `;
+  });
+}
+
+function filterAdmin(q){
+  renderAdmin(globalCards.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())));
+}
+
+function toggleStock(id,name,img,set){
+
+  if(!inventory[id]){
+    inventory[id]={stock:false,price:0,qty:1,set};
+  }
+
+  inventory[id].stock=!inventory[id].stock;
+
+  cardCache[id]={name,img,set,logo:""};
+
+  saveInventory();
+}
+
+function setPrice(id,p){
+
+  if(!inventory[id]){
+    inventory[id]={stock:false,price:0,qty:1};
+  }
+
+  inventory[id].price=parseFloat(p)||0;
+
+  saveInventory();
 }
 
 function logoutAdmin(){
   localStorage.removeItem("admin");
-  document.getElementById("adminPanel").style.right = "-400px";
+  document.getElementById("adminPanel").style.right="-450px";
 }
 
 </script>
