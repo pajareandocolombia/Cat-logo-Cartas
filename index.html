@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V10</title>
+<title>Tienda Pokémon PRO V8.4 FIX</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -12,6 +12,7 @@ header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-betwee
 .search input{width:100%;padding:8px;border-radius:6px;border:none;}
 .container{display:flex;}
 .sets{width:220px;height:100vh;overflow:auto;background:#111827;padding:8px;}
+.set{background:#1e293b;padding:6px;margin-bottom:6px;border-radius:6px;cursor:pointer;font-size:12px;}
 .main{flex:1;padding:10px;}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
 .card{background:#1e293b;padding:8px;border-radius:10px;}
@@ -20,7 +21,7 @@ button{width:100%;margin-top:5px;padding:6px;border:none;border-radius:6px;backg
 .global-btn{width:100%;padding:8px;margin-bottom:10px;background:#3b82f6;border:none;border-radius:6px;color:white;}
 
 #adminPanel{
-position:fixed;top:0;right:-400px;width:350px;height:100%;
+position:fixed;top:0;right:-400px;width:400px;height:100%;
 background:#020617;overflow:auto;padding:10px;transition:0.3s;
 }
 </style>
@@ -29,7 +30,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V10</div>
+  <div>🃏 Tienda Pokémon PRO V8.4 FIX</div>
   <button class="admin-btn" onclick="loginAdmin()">Admin</button>
 </header>
 
@@ -39,7 +40,7 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 
 <div class="container">
 
-<div class="sets">
+<div class="sets" id="sets">
   <button class="global-btn" onclick="loadAllStock()">🟢 Ver todo el stock</button>
 </div>
 
@@ -51,72 +52,109 @@ background:#020617;overflow:auto;padding:10px;transition:0.3s;
 </div>
 
 <div id="adminPanel">
-  <h2>🛠️ Admin rápido</h2>
-  <input placeholder="Buscar carta..." oninput="adminSearch(this.value)">
+  <h2>🛠️ Panel Admin</h2>
+  <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
   <div id="adminCards"></div>
 </div>
 
 <script>
 
-let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-let cache = JSON.parse(localStorage.getItem("cardsCache")) || {};
+const API_SETS = "https://api.pokemontcg.io/v2/sets";
+const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
+
+let inventory = {};
+let setsData = [];
+let allCards = [];
 
 /* ================= INIT ================= */
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+
+  inventory = JSON.parse(localStorage.getItem("inventory")) || {};
+
+  await loadSets();
+
   loadAllStock();
 });
 
-/* ================= BUILD CACHE ================= */
-async function buildCache(){
-
-  const res = await fetch("https://api.pokemontcg.io/v2/cards?pageSize=250");
-  const json = await res.json();
-
-  let newCache = {};
-
-  json.data.forEach(c=>{
-    newCache[c.id] = {
-      name: c.name,
-      img: c.images.small,
-      set: c.set.name,
-      date: c.set.releaseDate || "2000-01-01"
-    };
-  });
-
-  localStorage.setItem("cardsCache", JSON.stringify(newCache));
-
-  alert("Cache creada correctamente");
+/* ================= ADMIN ================= */
+function loginAdmin(){
+  const pass = prompt("Contraseña admin:");
+  if(pass === "1234"){
+    document.getElementById("adminPanel").style.right = "0px";
+    loadAdminSets();
+  }
 }
 
-/* ================= LOAD STOCK ================= */
-function loadAllStock(){
+/* ================= LOAD SETS ================= */
+async function loadSets(){
+
+  const res = await fetch(API_SETS);
+  const json = await res.json();
+
+  setsData = json.data.sort((a,b)=>
+    new Date(b.releaseDate) - new Date(a.releaseDate)
+  );
+
+  const box = document.getElementById("sets");
+
+  setsData.forEach(s=>{
+    const div = document.createElement("div");
+    div.className = "set";
+
+    div.innerHTML = `<div>${s.name}</div>`;
+
+    div.onclick = ()=> loadSet(s.id, s.name);
+
+    box.appendChild(div);
+  });
+}
+
+/* ================= 🔥 FIX REAL ================= */
+async function loadAllStock(){
 
   document.getElementById("title").innerText =
     "Todas las cartas en stock";
 
   inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-  cache = JSON.parse(localStorage.getItem("cardsCache")) || {};
+
+  if(Object.keys(inventory).length === 0){
+    document.getElementById("grid").innerHTML =
+      "<h3>No hay cartas en stock</h3>";
+    return;
+  }
 
   let grouped = {};
+  allCards = [];
 
-  Object.keys(inventory).forEach(id=>{
+  // 🔥 recorrer sets (NO IDs)
+  for(let s of setsData.slice(0,15)){ // limitamos a 15 sets (rápido)
 
-    const inv = inventory[id];
-    const c = cache[id];
+    const res = await fetch(API_SET_CARDS + s.id);
+    const json = await res.json();
 
-    if(!c || !inv.stock || inv.qty <= 0) return;
+    const cards = json.data.filter(c => inventory[c.id]?.stock);
 
-    if(!grouped[c.set]){
-      grouped[c.set] = {date:c.date, cards:[]};
-    }
+    if(cards.length === 0) continue;
 
-    grouped[c.set].cards.push({
-      name:c.name,
-      img:c.img,
-      qty:inv.qty
+    grouped[s.name] = {
+      date: s.releaseDate,
+      cards: []
+    };
+
+    cards.forEach(c=>{
+
+      const item = {
+        id:c.id,
+        name:c.name,
+        img:c.images.small,
+        qty:inventory[c.id].qty
+      };
+
+      grouped[s.name].cards.push(item);
+      allCards.push(item);
+
     });
-
-  });
+  }
 
   let ordered = Object.keys(grouped).map(k=>({
     name:k,
@@ -142,7 +180,9 @@ function renderGrouped(sets){
 
   sets.forEach(set=>{
 
-    grid.innerHTML += `<h3 style="grid-column:1/-1">${set.name}</h3>`;
+    grid.innerHTML += `
+      <h3 style="grid-column:1/-1">${set.name}</h3>
+    `;
 
     set.cards.forEach(c=>{
       grid.innerHTML += `
@@ -150,11 +190,30 @@ function renderGrouped(sets){
           <img src="${c.img}">
           <div>${c.name}</div>
           <div>Stock: ${c.qty}</div>
+          <button onclick="buy('${c.name}')">Comprar</button>
         </div>
       `;
     });
-
   });
+}
+
+/* ================= FILTER SET ================= */
+async function loadSet(id,name){
+
+  document.getElementById("title").innerText = name;
+
+  const res = await fetch(API_SET_CARDS + id);
+  const json = await res.json();
+
+  const filtered = json.data
+    .filter(c => inventory[c.id]?.stock)
+    .map(c=>({
+      name:c.name,
+      img:c.images.small,
+      qty:inventory[c.id].qty
+    }));
+
+  render(filtered);
 }
 
 /* ================= SEARCH ================= */
@@ -167,80 +226,62 @@ function searchCards(){
     return;
   }
 
-  let results = [];
+  const matches = allCards.filter(c=>
+    c.name.toLowerCase().includes(q)
+  );
 
-  Object.keys(inventory).forEach(id=>{
-    const c = cache[id];
-    if(c && c.name.toLowerCase().includes(q)){
-      results.push({
-        name:c.name,
-        img:c.img,
-        qty:inventory[id].qty
-      });
-    }
-  });
-
-  render(results);
+  render(matches);
 }
 
-/* ================= ADMIN ================= */
-function loginAdmin(){
-  if(prompt("Clave") === "1234"){
-    document.getElementById("adminPanel").style.right = "0px";
-    loadAdmin();
-  }
-}
+function render(cards){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
 
-function loadAdmin(){
-
-  const box = document.getElementById("adminCards");
-  box.innerHTML = "";
-
-  Object.keys(cache).slice(0,200).forEach(id=>{
-
-    const c = cache[id];
-    const inv = inventory[id] || {stock:false, qty:1};
-
-    box.innerHTML += `
-      <div style="margin-bottom:8px;">
-        <img src="${c.img}" width="60">
+  cards.forEach(c=>{
+    grid.innerHTML += `
+      <div class="card">
+        <img src="${c.img}">
         <div>${c.name}</div>
-
-        <input type="checkbox"
-          ${inv.stock ? "checked":""}
-          onchange="toggleStock('${id}')"> Stock
-
-        <input type="number" value="${inv.qty}"
-          onchange="changeQty('${id}',this.value)">
+        <div>Stock: ${c.qty}</div>
       </div>
     `;
   });
 }
 
-function adminSearch(q){
+/* ================= ADMIN ================= */
+async function loadAdminSets(){
+
+  document.getElementById("adminSet").innerHTML =
+    setsData.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+
+  loadAdminSet();
+}
+
+async function loadAdminSet(){
+
+  const setId = document.getElementById("adminSet").value;
+
+  const res = await fetch(API_SET_CARDS + setId);
+  const json = await res.json();
 
   const box = document.getElementById("adminCards");
   box.innerHTML = "";
 
-  Object.keys(cache).forEach(id=>{
+  json.data.forEach(c=>{
 
-    const c = cache[id];
-
-    if(!c.name.toLowerCase().includes(q.toLowerCase())) return;
-
-    const inv = inventory[id] || {stock:false, qty:1};
+    const inv = inventory[c.id] || {stock:false, qty:1};
 
     box.innerHTML += `
-      <div>
-        <img src="${c.img}" width="60">
+      <div style="margin-bottom:8px;">
+        <img src="${c.images.small}" width="80">
         <div>${c.name}</div>
 
         <input type="checkbox"
           ${inv.stock ? "checked":""}
-          onchange="toggleStock('${id}')">
+          onchange="toggleStock('${c.id}')"> Stock
 
         <input type="number" value="${inv.qty}"
-          onchange="changeQty('${id}',this.value)">
+          onchange="changeQty('${c.id}',this.value)">
       </div>
     `;
   });
@@ -261,6 +302,11 @@ function changeQty(id,q){
 function save(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
   loadAllStock();
+}
+
+/* ================= BUY ================= */
+function buy(name){
+  window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(name));
 }
 
 </script>
