@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V11</title>
+<title>Tienda Pokémon PRO V12</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -24,7 +24,7 @@ header{
 }
 
 .search{padding:10px;background:#111827;}
-.search input{width:100%;padding:8px;border-radius:6px;border:none;}
+.search input{width:100%;padding:8px;border:none;border-radius:6px;}
 
 .container{display:flex;}
 .main{flex:1;padding:10px;}
@@ -39,13 +39,6 @@ header{
   background:#1e293b;
   padding:8px;
   border-radius:10px;
-  transition:0.2s;
-  position:relative;
-}
-
-.card:hover{
-  transform:scale(1.03);
-  box-shadow:0 10px 25px rgba(0,0,0,0.5);
 }
 
 .card img{width:100%;}
@@ -58,7 +51,6 @@ button{
   border-radius:6px;
   background:#22c55e;
   color:white;
-  cursor:pointer;
 }
 
 /* CART */
@@ -82,7 +74,6 @@ button{
   background:#020617;
   padding:10px;
   transition:0.3s;
-  z-index:9999;
 }
 
 /* ADMIN */
@@ -96,44 +87,30 @@ button{
   overflow:auto;
   padding:10px;
   transition:0.3s;
-  z-index:9999;
 }
-
-.badge{
-  position:absolute;
-  top:5px;
-  left:5px;
-  font-size:10px;
-  padding:3px 6px;
-  border-radius:6px;
-  background:#22c55e;
-}
-.badge.red{background:#ef4444;}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div>🃏 Tienda Pokémon PRO V11</div>
+  <div>🃏 Pokémon PRO V12</div>
   <button class="admin-btn" onclick="openLogin()">Admin</button>
 </header>
 
 <div class="search">
-  <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
+  <input id="search" placeholder="Buscar carta..." oninput="searchFront()">
 </div>
 
 <div class="container">
   <div class="main">
-    <h3 id="title">Stock disponible</h3>
+    <h3>Stock disponible</h3>
     <div class="grid" id="grid"></div>
   </div>
 </div>
 
 <!-- CART -->
-<div id="cartFloating" onclick="toggleCart()">
-  🛒 <span id="cartCount">0</span>
-</div>
+<div id="cartFloating" onclick="toggleCart()">🛒 <span id="cartCount">0</span></div>
 
 <div id="cartPanel">
   <h3>Carrito</h3>
@@ -144,16 +121,22 @@ button{
 
 <!-- ADMIN -->
 <div id="adminPanel">
-  <h2>🛠️ ADMIN V11</h2>
-  <button onclick="logoutAdmin()" style="background:#ef4444;">Logout</button>
-  <div id="adminContent"></div>
+  <h2>ADMIN V12 (RÁPIDO)</h2>
+
+  <button onclick="loadAdminSets()">Cargar sets</button>
+
+  <select id="setSelect" onchange="loadSet(this.value)"></select>
+
+  <input id="adminSearch" placeholder="Buscar global..." oninput="filterAdmin()">
+
+  <div id="adminGrid"></div>
 </div>
 
 <!-- LOGIN -->
-<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+<div id="loginOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
   <div style="background:#1e293b;padding:20px;border-radius:10px;width:280px;">
-    <h3>Login Admin</h3>
-    <input id="pass" type="password" placeholder="Contraseña" style="width:100%;padding:8px;">
+    <h3>Login</h3>
+    <input id="pass" type="password">
     <button onclick="login()">Entrar</button>
   </div>
 </div>
@@ -161,95 +144,75 @@ button{
 <script>
 
 /* ================= DATA ================= */
-const API_SETS = "https://api.pokemontcg.io/v2/sets";
-const API_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
+const API_SETS="https://api.pokemontcg.io/v2/sets";
+const API_CARDS="https://api.pokemontcg.io/v2/cards?q=set.id:";
 
-let inventory = JSON.parse(localStorage.getItem("inventory") || "{}");
-let cardCache = JSON.parse(localStorage.getItem("cardCache") || "{}");
-let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+let inventory=JSON.parse(localStorage.getItem("inventory")||"{}");
+let cardCache=JSON.parse(localStorage.getItem("cardCache")||"{}");
+let cart=JSON.parse(localStorage.getItem("cart")||"[]");
 
-let setsData = [];
-let globalCards = [];
+let setsData=[];
+let currentAdminCards=[];
 
 /* ================= SAVE ================= */
-function saveInventory(){
-  localStorage.setItem("inventory", JSON.stringify(inventory));
-}
-function saveCart(){
-  localStorage.setItem("cart", JSON.stringify(cart));
-}
+const saveInv=()=>localStorage.setItem("inventory",JSON.stringify(inventory));
+const saveCart=()=>localStorage.setItem("cart",JSON.stringify(cart));
 
 /* ================= INIT ================= */
-document.addEventListener("DOMContentLoaded", async ()=>{
-  await loadSets();
-  loadAllStock();
+document.addEventListener("DOMContentLoaded",async()=>{
+  await fetchSets();
+  loadFront();
   updateCart();
-
-  if(localStorage.getItem("admin") === "true"){
-    openAdmin();
-  }
 });
 
 /* ================= SETS ================= */
-async function loadSetAdmin(setId){
-
-  const box = document.getElementById("adminContent");
-  box.innerHTML = "Cargando cartas...";
-
-  const res = await fetch(API_CARDS + setId);
-  const json = await res.json();
-
-  renderAdminFast(json.data);
+async function fetchSets(){
+  const r=await fetch(API_SETS);
+  const j=await r.json();
+  setsData=j.data;
 }
 
-/* ================= STOCK FRONT ================= */
-async function loadAllStock(){
+/* ================= FRONT ================= */
+function loadFront(){
 
-  const ids = Object.keys(inventory).filter(i=>inventory[i].stock);
+  const ids=Object.keys(inventory).filter(i=>inventory[i].stock);
 
-  let grouped = {};
+  const grouped={};
 
   ids.forEach(id=>{
-    const inv = inventory[id];
-    const c = cardCache[id];
+    const inv=inventory[id];
+    const c=cardCache[id];
     if(!c) return;
 
-    if(!grouped[c.set]) grouped[c.set] = [];
+    if(!grouped[c.set]) grouped[c.set]=[];
 
     grouped[c.set].push({
       id,
-      name: c.name,
-      img: c.img,
-      price: inv.price || 0,
-      qty: inv.qty || 1
+      name:c.name,
+      img:c.img,
+      price:inv.price||0
     });
   });
 
-  render(grouped);
+  renderFront(grouped);
 }
 
-/* ================= RENDER FRONT ================= */
-function render(grouped){
+function renderFront(grouped){
 
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
+  const g=document.getElementById("grid");
+  g.innerHTML="";
 
   Object.keys(grouped).forEach(set=>{
 
-    grid.innerHTML += `
-      <div class="card" style="background:#1e3a8a;text-align:center;">
-        <div>${set}</div>
-      </div>
-    `;
+    g.innerHTML+=`<div class="card" style="background:#1e3a8a;text-align:center;">${set}</div>`;
 
     grouped[set].forEach(c=>{
-
-      grid.innerHTML += `
+      g.innerHTML+=`
         <div class="card">
           <img src="${c.img}">
           <div>${c.name}</div>
           <div>$${c.price}</div>
-          <button onclick="addToCart('${c.id}')">Agregar</button>
+          <button onclick="addCart('${c.id}')">Agregar</button>
         </div>
       `;
     });
@@ -258,82 +221,125 @@ function render(grouped){
 }
 
 /* ================= CART ================= */
-function addToCart(id){
+function addCart(id){
 
-  const inv = inventory[id];
-  const c = cardCache[id];
+  const inv=inventory[id];
+  const c=cardCache[id];
+  if(!inv||!c) return;
 
-  if(!inv || !c) return;
+  let ex=cart.find(i=>i.id===id);
 
-  const ex = cart.find(i=>i.id===id);
-
-  if(ex){
-    ex.qty++;
-  }else{
-    cart.push({
-      id,
-      name:c.name,
-      price:inv.price || 0,
-      qty:1
-    });
-  }
+  if(ex) ex.qty++;
+  else cart.push({id,name:c.name,price:inv.price||0,qty:1});
 
   saveCart();
   updateCart();
-  document.getElementById("cartPanel").style.right="-350px";
 }
 
 function updateCart(){
 
-  let total = 0;
-
-  document.getElementById("cartCount").innerText =
-    cart.reduce((a,b)=>a+b.qty,0);
-
-  const box = document.getElementById("cartItems");
-  box.innerHTML = "";
-
-  cart.forEach(i=>{
-    total += i.qty*i.price;
-    box.innerHTML += `
-      <div style="display:flex;justify-content:space-between;">
-        <span>${i.name} x${i.qty}</span>
-        <span>$${i.qty*i.price}</span>
-      </div>
-    `;
-  });
-
-  document.getElementById("cartTotal").innerText =
-    "Total: $" + total;
-}
-
-/* ================= CART UI ================= */
-function toggleCart(){
-  const p=document.getElementById("cartPanel");
-  p.style.right = p.style.right==="0px"?"-350px":"0px";
-}
-
-/* ================= CHECKOUT ================= */
-function checkout(){
-
-  let text="Pedido:%0A";
   let total=0;
+  document.getElementById("cartCount").innerText=cart.reduce((a,b)=>a+b.qty,0);
+
+  const box=document.getElementById("cartItems");
+  box.innerHTML="";
 
   cart.forEach(i=>{
     total+=i.qty*i.price;
-    text+=`- ${i.name} x${i.qty} = $${i.qty*i.price}%0A`;
+    box.innerHTML+=`<div>${i.name} x${i.qty} - $${i.qty*i.price}</div>`;
   });
 
-  text+=`%0ATotal: $${total}`;
-
-  window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(text));
-
-  cart=[];
-  saveCart();
-  updateCart();
+  document.getElementById("cartTotal").innerText="Total: $"+total;
 }
 
-/* ================= ADMIN ================= */
+/* ================= ADMIN (OPTIMIZADO V12) ================= */
+async function loadAdminSets(){
+
+  const sel=document.getElementById("setSelect");
+  sel.innerHTML=setsData.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+}
+
+async function loadSet(setId){
+
+  if(!setId) return;
+
+  const res=await fetch(API_CARDS+setId);
+  const j=await res.json();
+
+  currentAdminCards=j.data;
+  renderAdmin(j.data.slice(0,50)); // 🔥 PAGINACIÓN 50
+}
+
+function renderAdmin(cards){
+
+  const box=document.getElementById("adminGrid");
+  box.innerHTML="";
+
+  cards.forEach(c=>{
+
+    const inv=inventory[c.id]||{stock:false,price:0};
+
+    box.innerHTML+=`
+      <div class="card">
+
+        <img src="${c.images.small}" width="60">
+
+        <div>${c.name}</div>
+
+        <label>
+          <input type="checkbox"
+            ${inv.stock?"checked":""}
+            onchange="toggle('${c.id}','${c.name}','${c.images.small}','${c.set.name}')">
+          stock
+        </label>
+
+        <input type="number"
+          value="${inv.price||0}"
+          onchange="price('${c.id}',this.value)">
+
+      </div>
+    `;
+  });
+}
+
+/* ================= FILTER ADMIN ================= */
+function filterAdmin(){
+
+  const q=document.getElementById("adminSearch").value.toLowerCase();
+
+  const filtered=currentAdminCards.filter(c=>
+    c.name.toLowerCase().includes(q)
+  );
+
+  renderAdmin(filtered.slice(0,50));
+}
+
+/* ================= INVENTORY ================= */
+function toggle(id,name,img,set){
+
+  if(!inventory[id]){
+    inventory[id]={stock:false,price:0,qty:1,set};
+  }
+
+  inventory[id].stock=!inventory[id].stock;
+
+  cardCache[id]={name,img,set};
+
+  saveInv();
+}
+
+function price(id,p){
+
+  if(!inventory[id]){
+    inventory[id]={stock:false,price:0};
+  }
+
+  inventory[id].price=parseFloat(p)||0;
+
+  saveInv();
+}
+
+/* ================= AUTH ================= */
 function openLogin(){
   document.getElementById("loginOverlay").style.display="flex";
 }
@@ -342,132 +348,28 @@ function login(){
   if(document.getElementById("pass").value==="1234"){
     localStorage.setItem("admin","true");
     document.getElementById("loginOverlay").style.display="none";
-    openAdmin();
+    document.getElementById("adminPanel").style.right="0px";
   }
 }
 
-function openAdmin(){
-  document.getElementById("adminPanel").style.right="0px";
- async function loadGlobalAdmin(){
-
-  const box = document.getElementById("adminContent");
-  box.innerHTML = "";
-
-  box.innerHTML = `<h3>Selecciona un set para cargar cartas</h3>`;
-
-  const select = document.createElement("select");
-
-  select.innerHTML = setsData.map(s=>
-    `<option value="${s.id}">${s.name}</option>`
-  ).join("");
-
-  select.onchange = ()=> loadSetAdmin(select.value);
-
-  box.appendChild(select);
-}
+/* ================= CART UI ================= */
+function toggleCart(){
+  const p=document.getElementById("cartPanel");
+  p.style.right=p.style.right==="0px"?"-350px":"0px";
 }
 
-/* ================= V11 ADMIN GLOBAL ================= */
-async function loadGlobalAdmin(){
+/* ================= CHECKOUT ================= */
+function checkout(){
 
-  const box=document.getElementById("adminContent");
-  box.innerHTML="Cargando...";
+  let t=0;
+  let txt="Pedido:%0A";
 
-  let all=[];
-
-  for(const s of setsData){
-    try{
-      const r=await fetch(API_CARDS+s.id);
-      const j=await r.json();
-
-      j.data.forEach(c=>{
-        all.push({
-          id:c.id,
-          name:c.name,
-          img:c.images.small,
-          set:c.set.name
-        });
-      });
-
-    }catch(e){}
-  }
-
-  globalCards=all;
-
-  renderAdmin(all);
-}
-
-function renderAdmin(cards){
-
-  const box=document.getElementById("adminContent");
-  box.innerHTML="";
-
-  box.innerHTML+=`
-    <input placeholder="Buscar..."
-      oninput="filterAdmin(this.value)"
-      style="width:100%;padding:8px;">
-  `;
-
-  cards.forEach(c=>{
-
-    const inv=inventory[c.id]||{stock:false,price:0};
-
-    box.innerHTML+=`
-      <div style="background:#1e293b;margin:10px 0;padding:8px;border-radius:10px;">
-
-        <img src="${c.img}" width="70">
-
-        <div>${c.name}</div>
-        <div style="font-size:12px;">${c.set}</div>
-
-        <label>
-          <input type="checkbox"
-            ${inv.stock?"checked":""}
-            onchange="toggleStock('${c.id}','${c.name}','${c.img}','${c.set}')">
-          Stock
-        </label>
-
-        <input type="number"
-          value="${inv.price||0}"
-          onchange="setPrice('${c.id}',this.value)"
-          style="width:100%;">
-
-      </div>
-    `;
+  cart.forEach(i=>{
+    t+=i.qty*i.price;
+    txt+=`${i.name} x${i.qty}%0A`;
   });
-}
 
-function filterAdmin(q){
-  renderAdmin(globalCards.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())));
-}
-
-function toggleStock(id,name,img,set){
-
-  if(!inventory[id]){
-    inventory[id]={stock:false,price:0,qty:1,set};
-  }
-
-  inventory[id].stock=!inventory[id].stock;
-
-  cardCache[id]={name,img,set,logo:""};
-
-  saveInventory();
-}
-
-function setPrice(id,p){
-
-  if(!inventory[id]){
-    inventory[id]={stock:false,price:0,qty:1};
-  }
-
-  inventory[id].price=parseFloat(p)||0;
-
-  saveInventory();
-}
-
-function logoutAdmin(){
-  localStorage.removeItem("admin");
-  document.getElementById("adminPanel").style.right="-450px";
+  window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(txt));
 }
 
 </script>
