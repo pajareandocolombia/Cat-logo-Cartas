@@ -358,6 +358,19 @@ function checkout(){
 }
 
 </script>
+document.addEventListener("click", function (e) {
 
+  const panel = document.getElementById("cartPanel");
+  const button = document.getElementById("cartFloating");
+
+  const isCart = panel.contains(e.target);
+  const isButton = button.contains(e.target);
+
+  // si no está clickeando carrito ni botón → cerrar
+  if (!isCart && !isButton) {
+    panel.style.right = "-350px";
+  }
+
+});
 </body>
 </html>
