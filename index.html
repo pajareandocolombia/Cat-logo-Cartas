@@ -117,52 +117,54 @@ async function loadAllStock(){
 
   inventory = JSON.parse(localStorage.getItem("inventory")) || {};
 
-  if(Object.keys(inventory).length === 0){
-    document.getElementById("grid").innerHTML =
-      "<h3>No hay cartas en stock</h3>";
-    return;
-  }
-
   let grouped = {};
   allCards = [];
 
-  // 🔥 recorrer sets (NO IDs)
-  for(let s of setsData.slice(0,15)){ // limitamos a 15 sets (rápido)
+  // 🔥 recorrer TODAS las colecciones cargadas
+  for(const s of setsData){
 
-    const res = await fetch(API_SET_CARDS + s.id);
-    const json = await res.json();
+    try{
 
-    const cards = json.data.filter(c => inventory[c.id]?.stock);
+      const res = await fetch(API_SET_CARDS + s.id);
+      const json = await res.json();
 
-    if(cards.length === 0) continue;
+      const cards = json.data.filter(c => inventory[c.id]?.stock);
 
-    grouped[s.name] = {
-      date: s.releaseDate,
-      cards: []
-    };
+      if(cards.length === 0) continue;
 
-    cards.forEach(c=>{
-
-      const item = {
-        id:c.id,
-        name:c.name,
-        img:c.images.small,
-        qty:inventory[c.id].qty
+      grouped[s.name] = {
+        date: s.releaseDate,
+        cards: []
       };
 
-      grouped[s.name].cards.push(item);
-      allCards.push(item);
+      cards.forEach(c=>{
 
-    });
+        const item = {
+          id: c.id,
+          name: c.name,
+          img: c.images.small,
+          qty: inventory[c.id]?.qty || 1
+        };
+
+        grouped[s.name].cards.push(item);
+        allCards.push(item);
+      });
+
+    } catch(e){
+      console.log("Error cargando set:", s.name);
+    }
   }
 
+  // 🔥 ordenar colecciones por fecha (más nuevas primero)
   let ordered = Object.keys(grouped).map(k=>({
-    name:k,
-    date:grouped[k].date,
-    cards:grouped[k].cards
+    name: k,
+    date: grouped[k].date,
+    cards: grouped[k].cards
   }));
 
-  ordered.sort((a,b)=> new Date(b.date) - new Date(a.date));
+  ordered.sort((a,b)=>
+    new Date(b.date) - new Date(a.date)
+  );
 
   renderGrouped(ordered);
 }
