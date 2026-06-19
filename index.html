@@ -191,10 +191,15 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 });
 
 /* ================= SETS ================= */
-async function loadSets(){
-  const r = await fetch(API_SETS);
-  const j = await r.json();
-  setsData = j.data || [];
+async function loadSetAdmin(setId){
+
+  const box = document.getElementById("adminContent");
+  box.innerHTML = "Cargando cartas...";
+
+  const res = await fetch(API_CARDS + setId);
+  const json = await res.json();
+
+  renderAdminFast(json.data);
 }
 
 /* ================= STOCK FRONT ================= */
