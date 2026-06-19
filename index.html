@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Tienda Pokémon PRO V12</title>
+<title>Tienda Pokémon PRO V12.1</title>
 
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;color:white;}
@@ -51,6 +51,7 @@ button{
   border-radius:6px;
   background:#22c55e;
   color:white;
+  cursor:pointer;
 }
 
 /* CART */
@@ -94,7 +95,7 @@ button{
 <body>
 
 <header>
-  <div>🃏 Pokémon PRO V12</div>
+  <div>🃏 Pokémon PRO V12.1</div>
   <button class="admin-btn" onclick="openLogin()">Admin</button>
 </header>
 
@@ -121,13 +122,12 @@ button{
 
 <!-- ADMIN -->
 <div id="adminPanel">
-  <h2>ADMIN V12 (RÁPIDO)</h2>
-
+  <h2>ADMIN</h2>
   <button onclick="loadAdminSets()">Cargar sets</button>
 
   <select id="setSelect" onchange="loadSet(this.value)"></select>
 
-  <input id="adminSearch" placeholder="Buscar global..." oninput="filterAdmin()">
+  <input id="adminSearch" placeholder="Buscar..." oninput="filterAdmin()">
 
   <div id="adminGrid"></div>
 </div>
@@ -155,8 +155,17 @@ let setsData=[];
 let currentAdminCards=[];
 
 /* ================= SAVE ================= */
-const saveInv=()=>localStorage.setItem("inventory",JSON.stringify(inventory));
-const saveCart=()=>localStorage.setItem("cart",JSON.stringify(cart));
+function saveCart(){
+  localStorage.setItem("cart",JSON.stringify(cart));
+}
+
+/* ================= 🔥 FIX CENTRAL (NUEVO) ================= */
+function syncInventory(){
+  localStorage.setItem("inventory",JSON.stringify(inventory));
+
+  // refresco automático del front
+  loadFront();
+}
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded",async()=>{
@@ -236,23 +245,30 @@ function addCart(id){
   updateCart();
 }
 
+/* ================= CART UI ================= */
 function updateCart(){
 
   let total=0;
-  document.getElementById("cartCount").innerText=cart.reduce((a,b)=>a+b.qty,0);
+  document.getElementById("cartCount").innerText=
+    cart.reduce((a,b)=>a+b.qty,0);
 
   const box=document.getElementById("cartItems");
   box.innerHTML="";
 
   cart.forEach(i=>{
     total+=i.qty*i.price;
-    box.innerHTML+=`<div>${i.name} x${i.qty} - $${i.qty*i.price}</div>`;
+    box.innerHTML+=`
+      <div style="display:flex;justify-content:space-between;">
+        <span>${i.name}</span>
+        <span>$${i.qty*i.price}</span>
+      </div>
+    `;
   });
 
   document.getElementById("cartTotal").innerText="Total: $"+total;
 }
 
-/* ================= ADMIN (OPTIMIZADO V12) ================= */
+/* ================= ADMIN ================= */
 async function loadAdminSets(){
 
   const sel=document.getElementById("setSelect");
@@ -261,15 +277,15 @@ async function loadAdminSets(){
 
 async function loadSet(setId){
 
-  if(!setId) return;
-
   const res=await fetch(API_CARDS+setId);
   const j=await res.json();
 
   currentAdminCards=j.data;
-  renderAdmin(j.data.slice(0,50)); // 🔥 PAGINACIÓN 50
+
+  renderAdmin(j.data.slice(0,50));
 }
 
+/* ================= ADMIN RENDER ================= */
 function renderAdmin(cards){
 
   const box=document.getElementById("adminGrid");
@@ -302,19 +318,17 @@ function renderAdmin(cards){
   });
 }
 
-/* ================= FILTER ADMIN ================= */
+/* ================= FILTER ================= */
 function filterAdmin(){
 
   const q=document.getElementById("adminSearch").value.toLowerCase();
 
-  const filtered=currentAdminCards.filter(c=>
-    c.name.toLowerCase().includes(q)
+  renderAdmin(
+    currentAdminCards.filter(c=>c.name.toLowerCase().includes(q)).slice(0,50)
   );
-
-  renderAdmin(filtered.slice(0,50));
 }
 
-/* ================= INVENTORY ================= */
+/* ================= 🔥 FIX STOCK ================= */
 function toggle(id,name,img,set){
 
   if(!inventory[id]){
@@ -325,18 +339,19 @@ function toggle(id,name,img,set){
 
   cardCache[id]={name,img,set};
 
-  saveInv();
+  syncInventory(); // 🔥 FIX APLICADO
 }
 
+/* ================= 🔥 FIX PRICE ================= */
 function price(id,p){
 
   if(!inventory[id]){
-    inventory[id]={stock:false,price:0};
+    inventory[id]={stock:false,price:0,qty:1};
   }
 
   inventory[id].price=parseFloat(p)||0;
 
-  saveInv();
+  syncInventory(); // 🔥 FIX APLICADO
 }
 
 /* ================= AUTH ================= */
@@ -346,30 +361,15 @@ function openLogin(){
 
 function login(){
   if(document.getElementById("pass").value==="1234"){
-    localStorage.setItem("admin","true");
     document.getElementById("loginOverlay").style.display="none";
     document.getElementById("adminPanel").style.right="0px";
   }
 }
 
-/* ================= CART UI ================= */
+/* ================= CART ================= */
 function toggleCart(){
   const p=document.getElementById("cartPanel");
   p.style.right=p.style.right==="0px"?"-350px":"0px";
-}
-
-/* ================= CHECKOUT ================= */
-function checkout(){
-
-  let t=0;
-  let txt="Pedido:%0A";
-
-  cart.forEach(i=>{
-    t+=i.qty*i.price;
-    txt+=`${i.name} x${i.qty}%0A`;
-  });
-
-  window.open("https://wa.me/57TU_NUMERO?text="+encodeURIComponent(txt));
 }
 
 </script>
