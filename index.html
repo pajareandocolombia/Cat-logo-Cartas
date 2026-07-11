@@ -1,408 +1,175 @@
+New Chat
+
+Image Generator
+NEW
+Today
+Write a Python function that sorts a list of numbe
+×
+Previous
+
+Settings
+Write a Python function that sorts a list of numbe
+Write a Python function that sorts a list of numbers
+
+
+
+python
+
+Copy
+def sort_numbers(numbers):
+    """Return a new list sorted in ascending order."""
+    return sorted(numbers)
+
+
+
+quiero crear una yienda online
+
+
+
+Para crear una tienda online necesitas:
+1. Elegir plataforma (recomendadas para principiantes):
+Shopify (fácil, todo incluido)
+WooCommerce (WordPress, más control)
+Magento (avanzado, escalable)
+
+2. Componentes esenciales:
+Catálogo de productos
+Carrito de compras
+Pasarela de pago (Stripe, PayPal, Mercado Pago)
+Gestión de envíos
+SSL/HTTPS
+
+3. Pasos básicos:
+Registrar dominio
+Elegir hosting (Shopify lo incluye)
+Configurar productos y precios
+Configurar métodos de pago
+Definir políticas de envío y devolución
+Agregar página "Sobre nosotros" y contacto
+Probar compras de prueba
+
+Costo inicial aproximado:
+Dominio: $10-15/año
+Plataforma: $29-79/mes (Shopify) o hosting + plugin (WooCommerce ~$10-30/mes)
+
+¿Tienes experiencia previa en ecommerce o necesitas ayuda con algún paso específico?
+
+
+
+quiero crearla en sites mediante github. necesito el código index
+
+
+
+html
+
+Copy
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Tienda Pokémon PRO V9.5 🛒</title>
-
-<style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white;}
-header{background:#1e3a8a;padding:10px;display:flex;justify-content:space-between;}
-.admin-btn{background:#f59e0b;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
-.search{padding:10px;background:#111827;}
-.search input{width:100%;padding:8px;border-radius:6px;border:none;}
-
-.container{display:flex;}
-.main{flex:1;padding:10px;}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-  gap:10px;
-}
-
-.card{
-  background:#1e293b;
-  padding:8px;
-  border-radius:10px;
-  transition:0.25s;
-  position:relative;
-  overflow:hidden;
-}
-
-.card:hover{
-  transform:translateY(-5px) scale(1.02);
-  box-shadow:0 10px 25px rgba(0,0,0,0.5);
-}
-
-.card img{
-  width:100%;
-  transition:0.3s;
-}
-
-.card:hover img{
-  transform:scale(1.2);
-}
-
-button{
-  width:100%;
-  margin-top:5px;
-  padding:6px;
-  border:none;
-  border-radius:6px;
-  background:#22c55e;
-  color:white;
-  cursor:pointer;
-}
-
-/* BADGES */
-.badge{
-  position:absolute;
-  top:6px;
-  left:6px;
-  padding:3px 6px;
-  font-size:10px;
-  border-radius:6px;
-}
-.badge.green{background:#22c55e;}
-.badge.red{background:#ef4444;}
-
-/* DIVIDER */
-.divider{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:linear-gradient(135deg,#1e3a8a,#0ea5e9);
-  border:2px dashed #60a5fa;
-}
-.divider img{width:80px;margin-bottom:5px;}
-.divider-title{font-size:12px;text-align:center;}
-
-/* CART */
-#cartFloating{
-  position:fixed;
-  bottom:20px;
-  right:20px;
-  background:#22c55e;
-  padding:12px;
-  border-radius:50%;
-  cursor:pointer;
-  font-size:18px;
-}
-
-#cartPanel{
-  position:fixed;
-  right:-350px;
-  top:0;
-  width:300px;
-  height:100%;
-  background:#020617;
-  padding:10px;
-  transition:0.3s;
-}
-
-/* ADMIN */
-#adminPanel{
-position:fixed;top:0;right:-400px;width:400px;height:100%;
-background:#020617;overflow:auto;padding:10px;transition:0.3s;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Tienda Online</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #333; }
+        .productos { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        .producto {
+            background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px; width: 250px; text-align: center;
+        }
+        .producto h3 { margin: 10px 0; }
+        .producto .precio { color: #2ecc71; font-size: 1.2em; font-weight: bold; }
+        .producto button {
+            background: #3498db; color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; margin-top: 10px;
+        }
+        .producto button:hover { background: #2980b9; }
+        #carrito {
+            margin-top: 40px; background: white; padding: 20px; border-radius: 8px;
+            max-width: 500px; margin-left: auto; margin-right: auto;
+        }
+        #lista-carrito { list-style: none; margin-bottom: 15px; }
+        #lista-carrito li { padding: 5px 0; border-bottom: 1px solid #eee; }
+        #total { font-weight: bold; font-size: 1.2em; }
+        .btn-pagar {
+            background: #2ecc71; color: white; border: none; padding: 10px 20px;
+            border-radius: 5px; cursor: pointer; width: 100%;
+        }
+    </style>
 </head>
-
 <body>
-
-<header>
-  <div>🃏 Tienda Pokémon PRO V9.5</div>
-  <button class="admin-btn" onclick="loginAdmin()">Admin</button>
-</header>
-
-<div class="search">
-  <input id="search" placeholder="Buscar carta..." oninput="searchCards()">
-</div>
-
-<div class="container">
-  <div class="main">
-    <h3 id="title">Cargando...</h3>
-    <div class="grid" id="grid"></div>
-  </div>
-</div>
-
-<!-- CARRITO -->
-<div id="cartFloating" onclick="toggleCart()">
-  🛒 <span id="cartCount">0</span>
-</div>
-
-<div id="cartPanel">
-  <h3>🛒 Carrito</h3>
-  <div id="cartItems"></div>
-  <h4 id="cartTotal">Total: 0</h4>
-  <button onclick="checkout()">Comprar</button>
-</div>
-
-<!-- ADMIN -->
-<div id="adminPanel">
-  <h2>🛠️ Panel Admin</h2>
-  <select id="adminSet" onchange="loadAdminSet()" style="width:100%;margin-bottom:10px;"></select>
-  <div id="adminCards"></div>
-</div>
-
-<script>
-
-const API_SETS = "https://api.pokemontcg.io/v2/sets";
-const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
-
-let inventory = {};
-let cardCache = {};
-let setsData = [];
-let allCards = [];
-let cart = [];
-
-/* INIT */
-document.addEventListener("DOMContentLoaded", async () => {
-  inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-  cardCache = JSON.parse(localStorage.getItem("cardCache")) || {};
-  await loadSets();
-  loadAllStock();
-});
-
-/* ADMIN */
-function loginAdmin(){
-  const pass = prompt("Contraseña admin:");
-  if(pass === "1234"){
-    document.getElementById("adminPanel").style.right = "0px";
-    loadAdminSets();
-  }
-}
-
-/* LOAD SETS */
-async function loadSets(){
-  const res = await fetch(API_SETS);
-  const json = await res.json();
-  setsData = json.data;
-}
-
-/* LOAD STOCK */
-async function loadAllStock(){
-
-  document.getElementById("title").innerText = "Cartas disponibles";
-
-  const ids = Object.keys(inventory).filter(id => inventory[id].stock);
-
-  if(ids.length === 0){
-    document.getElementById("grid").innerHTML = "<h3>No hay stock</h3>";
-    return;
-  }
-
-  let missing = ids.filter(id => !cardCache[id]);
-
-  if(missing.length > 0){
-    const query = missing.map(id => `id:${id}`).join(" OR ");
-    const res = await fetch(`https://api.pokemontcg.io/v2/cards?q=${query}`);
-    const json = await res.json();
-
-    json.data.forEach(c=>{
-      cardCache[c.id] = {
-        name: c.name,
-        img: c.images.small,
-        set: c.set.name,
-        logo: c.set.images.logo
-      };
-    });
-
-    localStorage.setItem("cardCache", JSON.stringify(cardCache));
-  }
-
-  let grouped = {};
-  allCards = [];
-
-  ids.forEach(id=>{
-    const data = cardCache[id];
-    const inv = inventory[id];
-
-    if(!grouped[data.set]) grouped[data.set] = [];
-
-    const item = {
-      name: data.name,
-      img: data.img,
-      qty: inv.qty,
-      logo: data.logo
-    };
-
-    grouped[data.set].push(item);
-    allCards.push(item);
-  });
-
-  renderGrouped(grouped);
-}
-
-/* RENDER CONTINUO */
-function renderGrouped(grouped){
-
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  Object.keys(grouped).forEach(setName=>{
-
-    const first = grouped[setName][0];
-
-    grid.innerHTML += `
-      <div class="card divider">
-        <div>
-          <img src="${first.logo}">
-          <div class="divider-title">${setName}</div>
-        </div>
-      </div>
-    `;
-
-    grouped[setName].forEach(c=>{
-
-      const badge =
-        c.qty <= 2
-          ? `<div class="badge red">Últimas</div>`
-          : `<div class="badge green">Disponible</div>`;
-
-      grid.innerHTML += `
-        <div class="card">
-          ${badge}
-          <img src="${c.img}">
-          <div>${c.name}</div>
-          <div>Stock: ${c.qty}</div>
-          <button onclick="addToCart('${c.name}')">Agregar</button>
-        </div>
-      `;
-    });
-
-  });
-}
-
-/* SEARCH */
-function searchCards(){
-  const q = document.getElementById("search").value.toLowerCase();
-
-  if(!q){
-    loadAllStock();
-    return;
-  }
-
-  const matches = allCards.filter(c =>
-    c.name.toLowerCase().includes(q)
-  );
-
-  render(matches);
-}
-
-function render(cards){
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
-
-  cards.forEach(c=>{
-    grid.innerHTML += `
-      <div class="card">
-        <img src="${c.img}">
-        <div>${c.name}</div>
-        <div>Stock: ${c.qty}</div>
-      </div>
-    `;
-  });
-}
-
-/* CART */
-function addToCart(name){
-  const existing = cart.find(i=>i.name===name);
-  if(existing) existing.qty++;
-  else cart.push({name, qty:1});
-  updateCart();
-}
-
-function updateCart(){
-  document.getElementById("cartCount").innerText =
-    cart.reduce((a,b)=>a+b.qty,0);
-
-  const box = document.getElementById("cartItems");
-  box.innerHTML = "";
-
-  let total = 0;
-
-  cart.forEach(i=>{
-    box.innerHTML += `<div>${i.name} x${i.qty}</div>`;
-    total += i.qty;
-  });
-
-  document.getElementById("cartTotal").innerText =
-    "Total items: " + total;
-}
-
-function toggleCart(){
-  const panel = document.getElementById("cartPanel");
-  panel.style.right = panel.style.right === "0px" ? "-350px" : "0px";
-}
-
-function checkout(){
-  if(cart.length === 0) return;
-
-  let text = "Pedido:%0A";
-
-  cart.forEach(i=>{
-    text += `- ${i.name} x${i.qty}%0A`;
-  });
-
-  window.open("https://wa.me/57TU_NUMERO?text=" + text);
-}
-
-/* ADMIN */
-async function loadAdminSets(){
-  document.getElementById("adminSet").innerHTML =
-    setsData.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
-  loadAdminSet();
-}
-
-async function loadAdminSet(){
-
-  const setId = document.getElementById("adminSet").value;
-
-  const res = await fetch(API_SET_CARDS + setId);
-  const json = await res.json();
-
-  const box = document.getElementById("adminCards");
-  box.innerHTML = "";
-
-  json.data.forEach(c=>{
-
-    const inv = inventory[c.id] || {stock:false, qty:1};
-
-    box.innerHTML += `
-      <div style="margin-bottom:8px;">
-        <img src="${c.images.small}" width="80">
-        <div>${c.name}</div>
-
-        <input type="checkbox"
-          ${inv.stock ? "checked":""}
-          onchange="toggleStock('${c.id}','${c.set.name}')"> Stock
-
-        <input type="number" value="${inv.qty}"
-          onchange="changeQty('${c.id}',this.value)">
-      </div>
-    `;
-  });
-}
-
-function toggleStock(id,setName){
-  if(!inventory[id]) inventory[id]={stock:false,qty:1,set:setName};
-  inventory[id].stock=!inventory[id].stock;
-  save();
-}
-
-function changeQty(id,q){
-  if(!inventory[id]) inventory[id]={stock:true,qty:1};
-  inventory[id].qty=parseInt(q)||1;
-  save();
-}
-
-function save(){
-  localStorage.setItem("inventory", JSON.stringify(inventory));
-  loadAllStock();
-}
-
-</script>
-
+    <header>
+        <h1>🛒 Mi Tienda Online</h1>
+        <p>Productos seleccionados para ti</p>
+    </header>
+
+    <section class="productos" id="productos"></section>
+
+    <div id="carrito">
+        <h2>Carrito</h2>
+        <ul id="lista-carrito"></ul>
+        <p id="total">Total: $0.00</p>
+        <button class="btn-pagar" onclick="alert('Compra simulada. Conecta pasarela de pago.')">Pagar ahora</button>
+    </div>
+
+    <script>
+        // Productos de ejemplo
+        const productos = [
+            { id: 1, nombre: "Camiseta básica", precio: 15.99 },
+            { id: 2, nombre: "Mochila ligera", precio: 29.99 },
+            { id: 3, nombre: "Libreta A5", precio: 8.50 },
+            { id: 4, nombre: "Taza cerámica", precio: 12.00 }
+        ];
+
+        let carrito = [];
+
+        function renderProductos() {
+            const contenedor = document.getElementById('productos');
+            contenedor.innerHTML = productos.map(p => `
+                <div class="producto">
+                    <h3>${p.nombre}</h3>
+                    <p class="precio">${p.precio.toFixed(2)}</p>
+                    <button onclick="agregarAlCarrito(${p.id})">Añadir al carrito</button>
+                </div>
+            `).join('');
+        }
+
+        function agregarAlCarrito(id) {
+            const producto = productos.find(p => p.id === id);
+            const existente = carrito.find(item => item.id === id);
+            if (existente) {
+                existente.cantidad++;
+            } else {
+                carrito.push({ ...producto, cantidad: 1 });
+            }
+            actualizarCarrito();
+        }
+
+        function actualizarCarrito() {
+            const lista = document.getElementById('lista-carrito');
+            const totalEl = document.getElementById('total');
+            if (carrito.length === 0) {
+                lista.innerHTML = '<li>El carrito está vacío</li>';
+                totalEl.textContent = 'Total: $0.00';
+                return;
+            }
+            lista.innerHTML = carrito.map(item => `
+                <li>${item.nombre} x${item.cantidad} - ${(item.precio * item.cantidad).toFixed(2)}</li>
+            `).join('');
+            const total = carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
+            totalEl.textContent = `Total: ${total.toFixed(2)}`;
+        }
+
+        renderProductos();
+        actualizarCarrito();
+    </script>
 </body>
 </html>
+
+
+
+Type your message...
+📺 Watch Ad to Send
++3 messages unlocked! 🎉
