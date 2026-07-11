@@ -10,7 +10,7 @@
   --bg:#0b1220;
   --card:#0f1724;
   --muted:#9aa4c0;
-  --accent:#06b6d4; /* cyan */
+  --accent:#06b6d4;
   --success:#16a34a;
   --danger:#ef4444;
   --glass: rgba(255,255,255,0.04);
@@ -58,6 +58,14 @@ body{
 }
 .title{font-size:18px;font-weight:600}
 .controls{display:flex;gap:8px;align-items:center}
+
+/* Tabs */
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tab{
+  padding:8px 12px;border-radius:10px;background:var(--card);cursor:pointer;border:0;color:inherit;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,0.3);
+}
+.tab.active{background:linear-gradient(90deg,var(--accent),#0ea5e9);color:#001820;font-weight:700;box-shadow:0 10px 28px rgba(2,6,23,0.5);}
 
 /* Search / Filters */
 .toolbar{
@@ -165,6 +173,13 @@ body{
 .admin-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
 .admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 
+/* Admin form */
+.admin-form{display:flex;flex-direction:column;gap:8px;padding:12px;background:linear-gradient(180deg,#011021,#001019);border-radius:10px}
+.admin-form input[type="text"], .admin-form input[type="number"], .admin-form textarea, .admin-form select{
+  padding:8px;border-radius:8px;border:0;background:#041022;color:inherit;width:100%;
+}
+.admin-form textarea{min-height:80px;resize:vertical}
+
 /* Footer small */
 .footer{color:var(--muted);font-size:13px;margin-top:18px;text-align:center;padding-bottom:36px}
 
@@ -196,10 +211,19 @@ body{
     </div>
   </header>
 
+  <!-- Main navigation tabs -->
+  <nav class="tabs" role="navigation" aria-label="Panel principal">
+    <button class="tab active" data-tab="pokemon">Pokémon</button>
+    <button class="tab" data-tab="monedas">Monedas y Billetes</button>
+    <button class="tab" data-tab="albumes">Álbumes</button>
+    <button class="tab" data-tab="juegos">Juegos de mesa</button>
+    <button class="tab" data-tab="accesorios">Accesorios</button>
+  </nav>
+
   <section class="toolbar" aria-label="Filtro y búsqueda">
     <div class="searchbox" role="search">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35" stroke="#9aa4c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <input id="search" type="search" placeholder="Buscar por nombre, set o código..." aria-label="Buscar cartas">
+      <input id="search" type="search" placeholder="Buscar por nombre, set, categoría..." aria-label="Buscar artículos">
     </div>
 
     <select id="setFilter" class="select" aria-label="Filtrar por set">
@@ -266,12 +290,48 @@ body{
     </div>
   </div>
 
-  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-    <select id="adminSetSelect" class="select"><option value="">Selecciona un set</option></select>
-    <button class="btn" id="loadSetCards">Cargar cartas</button>
-    <button class="btn" id="exportInv">Exportar inventario</button>
-    <button class="btn" id="importInv">Importar inventario</button>
-    <input id="importFile" type="file" accept="application/json" style="display:none">
+  <!-- Admin controls: create custom item -->
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-start;flex-wrap:wrap">
+    <div style="flex:1;min-width:320px">
+      <div class="admin-form" aria-hidden="false">
+        <label class="small">Categoría</label>
+        <select id="adminCategory" class="" >
+          <option value="monedas">Monedas y Billetes</option>
+          <option value="albumes">Álbumes</option>
+          <option value="juegos">Juegos de mesa</option>
+          <option value="accesorios">Accesorios</option>
+          <option value="pokemon">Pokémon (manual)</option>
+        </select>
+
+        <label class="small">Nombre</label>
+        <input id="adminName" type="text" placeholder="Nombre del artículo">
+
+        <label class="small">Cantidad</label>
+        <input id="adminQty" type="number" value="1" min="0">
+
+        <label class="small">Precio (número)</label>
+        <input id="adminPrice" type="number" value="0" min="0">
+
+        <label class="small">Descripción</label>
+        <textarea id="adminDesc" placeholder="Descripción breve"></textarea>
+
+        <label class="small">Imagen (jpg/png)</label>
+        <input id="adminImage" type="file" accept="image/*">
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" id="addCustomItem">Agregar artículo</button>
+          <button class="btn" id="exportInv">Exportar inventario</button>
+          <button class="btn" id="importInv">Importar inventario</button>
+          <input id="importFile" type="file" accept="application/json" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:320px">
+      <div style="font-size:13px;color:var(--muted)">Cargar cartas desde un set (API):</div>
+      <select id="adminSetSelect" class="select" style="margin-top:8px"><option value="">Selecciona un set</option></select>
+      <button class="btn" id="loadSetCards" style="margin-left:8px">Cargar cartas</button>
+    </div>
   </div>
 
   <div id="adminContent" class="admin-grid"></div>
@@ -283,15 +343,16 @@ const API_SETS = "https://api.pokemontcg.io/v2/sets";
 const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
 const API_HEADERS = {}; // si tienes x-api-key: {"X-Api-Key":"TU_API_KEY"}
 
-let inventory = JSON.parse(localStorage.getItem("inventory")||"{}"); // {id:{stock:true,qty:1}}
+let inventory = JSON.parse(localStorage.getItem("inventory")||"{}"); // {id:{stock:true,qty:1,category:'pokemon',name,price,desc,img}}
 let cardCache = JSON.parse(localStorage.getItem("cardCache")||"{}"); // id->{...}
 let cart = JSON.parse(localStorage.getItem("cart")||"[]"); // [{id, name, price, qty}]
 let setsData = [];
 let allItems = []; // flattened items for search/filter
+let activeTab = "pokemon";
 
 /* Utilities */
 const el = id => document.getElementById(id);
-const formatPrice = p => "$ " + p.toFixed(0);
+const formatPrice = p => "$ " + (Number(p)||0).toFixed(0);
 
 /* Toast */
 function showToast(msg, ms=1600){
@@ -322,10 +383,24 @@ async function apiFetch(url){
 /* Init */
 document.addEventListener("DOMContentLoaded", async ()=> {
   renderCart();
+  hookupTabs();
+  hookupUI();
   await loadSets();
   await loadAllStock();
-  hookupUI();
 });
+
+/* Tab handling */
+function hookupTabs(){
+  document.querySelectorAll(".tab").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+      btn.classList.add("active");
+      activeTab = btn.dataset.tab;
+      el("setFilter").disabled = (activeTab !== "pokemon"); // set filter only for pokemon
+      applyFilters();
+    });
+  });
+}
 
 /* UI hookups */
 function hookupUI(){
@@ -348,6 +423,8 @@ function hookupUI(){
   el("exportInv").addEventListener("click", exportInventory);
   el("importInv").addEventListener("click", ()=>el("importFile").click());
   el("importFile").addEventListener("change", importInventoryFile);
+
+  el("addCustomItem").addEventListener("click", addCustomItem);
 }
 
 /* CART FUNCs */
@@ -371,7 +448,7 @@ function renderCart(){
       <img src="${item.img}" alt="${escapeHtml(item.name)}">
       <div style="flex:1">
         <div style="font-weight:700">${escapeHtml(item.name)}</div>
-        <div class="small">${item.set || ''}</div>
+        <div class="small">${item.category ? capitalize(item.category) : ''}</div>
         <div class="small" style="margin-top:6px">${formatPrice(item.price)}</div>
       </div>
       <div class="qty-control" aria-label="Control de cantidad">
@@ -402,13 +479,13 @@ function changeCartQty(id, delta){
 }
 
 function addToCartById(id){
-  const info = cardCache[id];
+  const info = inventory[id] || cardCache[id];
   if(!info) { showToast("Artículo no disponible"); return; }
 
-  const price = info.price ?? (Math.max(3, Math.round(Math.random()*40))); // placeholder price
+  const price = Number(inventory[id]?.price ?? cardCache[id]?.price ?? info.price ?? (Math.max(3, Math.round(Math.random()*40))));
   const idx = cart.findIndex(i=>i.id===id);
   if(idx === -1){
-    cart.push({ id, name:info.name, img:info.img, set: info.set, price, qty:1 });
+    cart.push({ id, name: info.name || inventory[id].name, img: inventory[id]?.img || cardCache[id]?.img || '', category: inventory[id]?.category || (cardCache[id] ? 'pokemon' : ''), price, qty:1 });
   } else {
     cart[idx].qty++;
   }
@@ -462,11 +539,19 @@ function applyFilters(){
 
   let items = allItems.slice();
 
-  if(setFilter) items = items.filter(i=>i.setId === setFilter);
+  // filter by active tab category
+  if(activeTab === "pokemon"){
+    items = items.filter(i => (i.category || 'pokemon') === 'pokemon');
+    if(setFilter) items = items.filter(i => i.setId === setFilter);
+  } else {
+    items = items.filter(i => (i.category || '') === activeTab);
+  }
+
   if(q){
     items = items.filter(i=>
       (i.name && i.name.toLowerCase().includes(q)) ||
-      (i.set && i.set.toLowerCase().includes(q))
+      (i.set && i.set.toLowerCase().includes(q)) ||
+      (i.description && i.description.toLowerCase().includes(q))
     );
   }
 
@@ -498,20 +583,24 @@ async function loadSets(){
 
 /* LOAD full stock from inventory -> uses cardCache and inventory */
 async function loadAllStock(){
-  el("title").textContent = "Cargando cartas en stock...";
-  const ids = Object.keys(inventory).filter(id => inventory[id].stock);
+  el("title").textContent = "Cargando artículos en stock...";
+  const ids = Object.keys(inventory);
+
   if(ids.length === 0){
-    el("grid").innerHTML = `<div style="grid-column:1/-1;padding:26px;border-radius:12px;background:var(--glass);text-align:center;color:var(--muted)">No hay stock. Ve al panel admin para marcar cartas.</div>`;
+    el("grid").innerHTML = `<div style="grid-column:1/-1;padding:26px;border-radius:12px;background:var(--glass);text-align:center;color:var(--muted)">No hay stock. Ve al panel admin para agregar artículos.</div>`;
     el("empty").style.display = "none";
     allItems = [];
     return;
   }
 
-  // Que id's no estan en cache
-  const missing = ids.filter(id => !cardCache[id]);
-  if(missing.length > 0){
-    // api allows OR queries: id:a OR id:b
-    const query = missing.map(id => `id:${id}`).join(" OR ");
+  // For any inventory entries that reference a pokemon card id and lack cache, fetch
+  const missingCardIds = ids.filter(id => {
+    const inv = inventory[id];
+    return inv && inv.category === 'pokemon' && !cardCache[id];
+  });
+
+  if(missingCardIds.length > 0){
+    const query = missingCardIds.map(id => `id:${id}`).join(" OR ");
     const json = await apiFetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}`);
     if(json && json.data){
       json.data.forEach(c=>{
@@ -528,26 +617,27 @@ async function loadAllStock(){
     }
   }
 
-  // build grouped and flattened list
-  const grouped = {};
+  // build flattened list from inventory entries (both pokemon and custom)
   allItems = [];
   ids.forEach(id=>{
-    const data = cardCache[id] || { id, name: "Desconocido", img:"", set:"", setId:"" };
-    const inv = inventory[id] || {stock:false, qty:1};
-    const item = {
-      id: data.id,
-      name: data.name,
-      img: data.img,
-      set: data.set,
-      setId: data.setId,
-      qty: inv.qty || 1
+    const inv = inventory[id];
+    if(!inv) return;
+    const category = inv.category || 'pokemon';
+    let item = {
+      id,
+      name: inv.name || (cardCache[id] && cardCache[id].name) || "Sin nombre",
+      img: inv.img || (cardCache[id] && cardCache[id].img) || '',
+      set: inv.set || (cardCache[id] && cardCache[id].set) || '',
+      setId: inv.setId || (cardCache[id] && cardCache[id].setId) || '',
+      qty: Number(inv.qty || 0),
+      price: Number(inv.price || 0),
+      description: inv.description || inv.desc || "",
+      category,
+      stock: !!inv.stock
     };
-    if(!grouped[item.set]) grouped[item.set]=[];
-    grouped[item.set].push(item);
     allItems.push(item);
   });
 
-  // render initial view
   applyFilters();
 }
 
@@ -565,14 +655,17 @@ function renderItems(items){
     card.className = "card";
     card.setAttribute("role","listitem");
     const badgeClass = (it.qty <= 2) ? "badge red" : "badge green";
+    const priceHtml = it.price ? `<div style="font-weight:700">${formatPrice(it.price)}</div>` : `<div class="small">Precio no definido</div>`;
     card.innerHTML = `
       <div class="${badgeClass}" aria-hidden="true">${it.qty <= 2 ? "Últimas" : "Disponible"}</div>
       <div class="thumb"><img loading="lazy" src="${it.img}" alt="${escapeHtml(it.name)}"></div>
       <div class="meta">
         <h4 title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</h4>
-        <div class="small">${escapeHtml(it.set)}</div>
+        <div class="small">${escapeHtml(it.set || capitalize(it.category || ''))}</div>
       </div>
+      <p class="small">${escapeHtml(it.description || '')}</p>
       <p class="small">Stock: ${it.qty}</p>
+      ${priceHtml}
       <div class="cta">
         <button class="select" data-id="${it.id}" aria-label="Agregar ${escapeHtml(it.name)}">Agregar</button>
         <button class="select" onclick="openDetails('${it.id}')">Ver</button>
@@ -588,7 +681,8 @@ function renderItems(items){
 }
 
 /* Escape helper for simple text injection safety */
-function escapeHtml(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function escapeHtml(s){ return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function capitalize(s){ if(!s) return ''; return s.charAt(0).toUpperCase()+s.slice(1); }
 
 /* Admin flows */
 function openAdmin(){
@@ -607,16 +701,76 @@ function attemptAdminLogin(){
   if(pass === "1234"){ // cambiar por un flujo real en producción
     showToast("Acceso admin concedido");
     loadAdminSets();
+    renderAdminContent();
   } else {
     alert("Contraseña incorrecta");
   }
 }
 
 async function loadAdminSets(){
-  // muestra sets ya cargados en select; nada más en demo
+  // sets ya cargados en prefetch, simplemente aviso
   showToast("Selecciona un set y carga cartas");
 }
 
+/* Add custom item */
+function addCustomItem(){
+  const category = el("adminCategory").value || "accesorios";
+  const name = el("adminName").value.trim();
+  const qty = Number(el("adminQty").value) || 0;
+  const price = Number(el("adminPrice").value) || 0;
+  const desc = el("adminDesc").value.trim();
+  const file = el("adminImage").files[0];
+
+  if(!name){
+    alert("Nombre requerido");
+    return;
+  }
+
+  const id = `custom-${Date.now()}`;
+
+  if(file){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      inventory[id] = {
+        stock: qty>0,
+        qty,
+        price,
+        description: desc,
+        name,
+        img: dataUrl,
+        category
+      };
+      saveInventory();
+      el("adminName").value = "";
+      el("adminQty").value = "1";
+      el("adminPrice").value = "0";
+      el("adminDesc").value = "";
+      el("adminImage").value = "";
+      showToast("Artículo agregado");
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // no image: allow without
+    inventory[id] = {
+      stock: qty>0,
+      qty,
+      price,
+      description: desc,
+      name,
+      img: "",
+      category
+    };
+    saveInventory();
+    el("adminName").value = "";
+    el("adminQty").value = "1";
+    el("adminPrice").value = "0";
+    el("adminDesc").value = "";
+    showToast("Artículo agregado");
+  }
+}
+
+/* Load cards from set (admin) */
 async function loadAdminSetCards(){
   const setId = el("adminSetSelect").value;
   if(!setId){ alert("Elige un set"); return; }
@@ -625,7 +779,7 @@ async function loadAdminSetCards(){
   if(!json){ el("adminContent").innerHTML = `<div style="grid-column:1/-1;color:var(--muted)">Error al cargar</div>`; return; }
 
   const data = json.data || [];
-  // render cards with controls
+  // render cards with controls (admin can mark stock and qty)
   el("adminContent").innerHTML = "";
   data.forEach(c=>{
     const id = c.id;
@@ -640,7 +794,8 @@ async function loadAdminSetCards(){
       <div class="small" style="margin-bottom:6px">${escapeHtml(c.set?.name || '')}</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-id="${id}" ${inv.stock? 'checked':''}> Stock</label>
-        <input type="number" data-id-qty="${id}" value="${inv.qty||1}" min="1" style="width:70px;padding:6px;border-radius:8px;background:#041225;border:0;color:inherit">
+        <input type="number" data-id-qty="${id}" value="${inv.qty||1}" min="0" style="width:70px;padding:6px;border-radius:8px;background:#041225;border:0;color:inherit">
+        <input type="number" data-id-price="${id}" value="${inv.price||0}" min="0" style="width:90px;padding:6px;border-radius:8px;background:#041225;border:0;color:inherit" placeholder="Precio">
       </div>
     `;
     el("adminContent").appendChild(card);
@@ -650,22 +805,101 @@ async function loadAdminSetCards(){
   el("adminContent").querySelectorAll("input[type='checkbox']").forEach(cb=>{
     cb.addEventListener("change", (e)=>{
       const id = e.target.dataset.id;
-      if(!inventory[id]) inventory[id] = {stock:false, qty:1};
+      if(!inventory[id]) inventory[id] = {stock:false, qty:1, category:'pokemon'};
       inventory[id].stock = e.target.checked;
+      inventory[id].category = 'pokemon';
       saveInventory();
     });
   });
-  el("adminContent").querySelectorAll("input[type='number']").forEach(n=>{
+  el("adminContent").querySelectorAll("input[data-id-qty]").forEach(n=>{
     n.addEventListener("change", (e)=>{
       const id = e.target.dataset.idQty || e.target.getAttribute("data-id-qty");
-      const v = parseInt(e.target.value) || 1;
-      if(!inventory[id]) inventory[id] = {stock:true, qty:1};
+      const v = parseInt(e.target.value) || 0;
+      if(!inventory[id]) inventory[id] = {stock: v>0, qty:v, category:'pokemon'};
       inventory[id].qty = v;
+      inventory[id].category = 'pokemon';
+      saveInventory();
+    });
+  });
+  el("adminContent").querySelectorAll("input[data-id-price]").forEach(n=>{
+    n.addEventListener("change", (e)=>{
+      const id = e.target.dataset.idPrice || e.target.getAttribute("data-id-price");
+      const v = Number(e.target.value) || 0;
+      if(!inventory[id]) inventory[id] = {stock:false, qty:1, category:'pokemon'};
+      inventory[id].price = v;
+      inventory[id].category = 'pokemon';
       saveInventory();
     });
   });
 
   showToast(`Cargadas ${data.length} cartas (admin)`);
+}
+
+/* Render admin content (inventory editor) */
+function renderAdminContent(){
+  el("adminContent").innerHTML = "";
+  const keys = Object.keys(inventory).reverse();
+  if(keys.length === 0){
+    el("adminContent").innerHTML = `<div style="grid-column:1/-1;color:var(--muted)">No hay artículos en inventario.</div>`;
+    return;
+  }
+  keys.forEach(id=>{
+    const inv = inventory[id];
+    const card = document.createElement("div");
+    card.style.background = "linear-gradient(180deg,#021025,#00121a)";
+    card.style.padding = "10px";
+    card.style.borderRadius = "10px";
+    card.innerHTML = `
+      <div style="display:flex;gap:8px">
+        <div style="width:90px;height:90px;background:#071224;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          ${inv.img ? `<img src="${inv.img}" style="width:100%;height:100%;object-fit:cover">` : `<div class="small" style="padding:6px;color:var(--muted)">Sin imagen</div>`}
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <div style="font-weight:700">${escapeHtml(inv.name|| ('Carta '+id))}</div>
+          <div class="small">${escapeHtml(inv.description||'')}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:auto">
+            <label class="small">Cat:
+              <select data-id-cat="${id}">
+                <option value="pokemon" ${inv.category==='pokemon'?'selected':''}>Pokémon</option>
+                <option value="monedas" ${inv.category==='monedas'?'selected':''}>Monedas</option>
+                <option value="albumes" ${inv.category==='albumes'?'selected':''}>Álbumes</option>
+                <option value="juegos" ${inv.category==='juegos'?'selected':''}>Juegos</option>
+                <option value="accesorios" ${inv.category==='accesorios'?'selected':''}>Accesorios</option>
+              </select>
+            </label>
+            <label class="small">Stock:
+              <input type="checkbox" data-id-stock="${id}" ${inv.stock ? 'checked' : ''}>
+            </label>
+            <label class="small">Qty:
+              <input type="number" data-id-qty="${id}" value="${inv.qty||0}" style="width:80px">
+            </label>
+            <label class="small">Precio:
+              <input type="number" data-id-price="${id}" value="${inv.price||0}" style="width:110px">
+            </label>
+            <button class="btn" data-id-del="${id}" style="margin-left:auto">Eliminar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    el("adminContent").appendChild(card);
+  });
+
+  // hookup admin editor controls
+  el("adminContent").querySelectorAll("select[data-id-cat]").forEach(s=>{
+    s.addEventListener("change",(e)=>{ const id = e.target.dataset.idCat; inventory[id].category = e.target.value; saveInventory(); });
+  });
+  el("adminContent").querySelectorAll("input[data-id-stock]").forEach(cb=>{
+    cb.addEventListener("change",(e)=>{ const id = e.target.dataset.idStock; inventory[id].stock = e.target.checked; saveInventory(); });
+  });
+  el("adminContent").querySelectorAll("input[data-id-qty]").forEach(n=>{
+    n.addEventListener("change",(e)=>{ const id = e.target.dataset.idQty; inventory[id].qty = Number(e.target.value)||0; inventory[id].stock = inventory[id].qty>0; saveInventory(); });
+  });
+  el("adminContent").querySelectorAll("input[data-id-price]").forEach(n=>{
+    n.addEventListener("change",(e)=>{ const id = e.target.dataset.idPrice; inventory[id].price = Number(e.target.value)||0; saveInventory(); });
+  });
+  el("adminContent").querySelectorAll("button[data-id-del]").forEach(b=>{
+    b.addEventListener("click",(e)=>{ const id = e.target.dataset.idDel; if(confirm('Eliminar este artículo?')){ delete inventory[id]; saveInventory(); renderAdminContent(); } });
+  });
 }
 
 /* Export / Import inventory */
@@ -698,14 +932,23 @@ function importInventoryFile(e){
 /* Inventory persistence */
 function saveInventory(){
   localStorage.setItem("inventory", JSON.stringify(inventory));
+  // update admin view and main catalog
+  renderAdminContent();
   loadAllStock();
 }
 
 /* Small details view placeholder */
 function openDetails(id){
-  const info = cardCache[id];
-  const msg = info ? `${info.name}\nSet: ${info.set}` : "Detalle no disponible";
-  alert(msg);
+  const inv = inventory[id];
+  const card = cardCache[id];
+  const info = inv || card;
+  if(!info){ alert("Detalle no disponible"); return; }
+  const name = info.name || inv?.name || card?.name || id;
+  const set = info.set || inv?.set || card?.set || '';
+  const desc = inv?.description || inv?.desc || "";
+  const qty = inv?.qty || 0;
+  const price = inv?.price || card?.price || 0;
+  alert(`${name}\n${set}\n\n${desc}\n\nStock: ${qty}\nPrecio: ${formatPrice(price)}`);
 }
 
 /* Initial admin set load helper (populates adminSetSelect) */
@@ -717,7 +960,7 @@ function openDetails(id){
   setsData.forEach(s=>{ const o=document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o); });
 })();
 
-/* On-demand: load card info into cache when viewing set as admin or similar */
+/* On-demand: save cache before unload */
 window.addEventListener("beforeunload", ()=>{ localStorage.setItem("cardCache", JSON.stringify(cardCache)); });
 
 </script>
