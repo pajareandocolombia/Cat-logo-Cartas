@@ -1,175 +1,726 @@
-New Chat
-
-Image Generator
-NEW
-Today
-Write a Python function that sorts a list of numbe
-×
-Previous
-
-Settings
-Write a Python function that sorts a list of numbe
-Write a Python function that sorts a list of numbers
-
-
-
-python
-
-Copy
-def sort_numbers(numbers):
-    """Return a new list sorted in ascending order."""
-    return sorted(numbers)
-
-
-
-quiero crear una yienda online
-
-
-
-Para crear una tienda online necesitas:
-1. Elegir plataforma (recomendadas para principiantes):
-Shopify (fácil, todo incluido)
-WooCommerce (WordPress, más control)
-Magento (avanzado, escalable)
-
-2. Componentes esenciales:
-Catálogo de productos
-Carrito de compras
-Pasarela de pago (Stripe, PayPal, Mercado Pago)
-Gestión de envíos
-SSL/HTTPS
-
-3. Pasos básicos:
-Registrar dominio
-Elegir hosting (Shopify lo incluye)
-Configurar productos y precios
-Configurar métodos de pago
-Definir políticas de envío y devolución
-Agregar página "Sobre nosotros" y contacto
-Probar compras de prueba
-
-Costo inicial aproximado:
-Dominio: $10-15/año
-Plataforma: $29-79/mes (Shopify) o hosting + plugin (WooCommerce ~$10-30/mes)
-
-¿Tienes experiencia previa en ecommerce o necesitas ayuda con algún paso específico?
-
-
-
-quiero crearla en sites mediante github. necesito el código index
-
-
-
-html
-
-Copy
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Tienda Online</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-        header { text-align: center; margin-bottom: 30px; }
-        h1 { color: #333; }
-        .productos { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-        .producto {
-            background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            padding: 20px; width: 250px; text-align: center;
-        }
-        .producto h3 { margin: 10px 0; }
-        .producto .precio { color: #2ecc71; font-size: 1.2em; font-weight: bold; }
-        .producto button {
-            background: #3498db; color: white; border: none; padding: 10px 20px;
-            border-radius: 5px; cursor: pointer; margin-top: 10px;
-        }
-        .producto button:hover { background: #2980b9; }
-        #carrito {
-            margin-top: 40px; background: white; padding: 20px; border-radius: 8px;
-            max-width: 500px; margin-left: auto; margin-right: auto;
-        }
-        #lista-carrito { list-style: none; margin-bottom: 15px; }
-        #lista-carrito li { padding: 5px 0; border-bottom: 1px solid #eee; }
-        #total { font-weight: bold; font-size: 1.2em; }
-        .btn-pagar {
-            background: #2ecc71; color: white; border: none; padding: 10px 20px;
-            border-radius: 5px; cursor: pointer; width: 100%;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tienda Coleccionables • V10</title>
+
+<style>
+:root{
+  --bg:#0b1220;
+  --card:#0f1724;
+  --muted:#9aa4c0;
+  --accent:#06b6d4; /* cyan */
+  --success:#16a34a;
+  --danger:#ef4444;
+  --glass: rgba(255,255,255,0.04);
+  --radius:12px;
+  --max-width:1100px;
+  --easing:cubic-bezier(.2,.9,.2,1);
+}
+
+/* Reset & base */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:linear-gradient(180deg,var(--bg) 0%, #071027 100%);
+  color:#e6eef8;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Layout */
+.app{
+  max-width:var(--max-width);
+  margin:24px auto;
+  padding:16px;
+}
+
+.header{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:16px;
+}
+.brand{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.logo{
+  width:48px;height:48px;border-radius:10px;
+  background:linear-gradient(135deg,#1e3a8a,#0ea5e9);
+  display:flex;align-items:center;justify-content:center;font-weight:700;
+  box-shadow:0 6px 18px rgba(2,6,23,0.6);
+}
+.title{font-size:18px;font-weight:600}
+.controls{display:flex;gap:8px;align-items:center}
+
+/* Search / Filters */
+.toolbar{
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+  flex-wrap:wrap;
+}
+.searchbox{
+  flex:1;min-width:200px;
+  background:var(--glass);padding:8px;border-radius:10px;
+  display:flex;align-items:center;gap:8px;
+  border:1px solid rgba(255,255,255,0.03);
+}
+.searchbox input{
+  background:transparent;border:0;color:inherit;outline:0;font-size:14px;width:100%;
+}
+.select, .btn{
+  background:var(--card);border-radius:10px;padding:8px 12px;border:0;color:inherit;cursor:pointer;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,0.3);
+}
+.select{min-width:160px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  transition:transform .18s var(--easing), box-shadow .18s var(--easing);
+}
+.btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+
+/* Grid */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill,minmax(180px,1fr));
+  gap:14px;
+}
+
+/* Card */
+.card{
+  background:linear-gradient(180deg,var(--card), #071026);
+  border-radius:var(--radius);
+  padding:12px;
+  transition:transform .22s var(--easing), box-shadow .22s var(--easing);
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,0.03);
+  display:flex;flex-direction:column;gap:8px;
+}
+.card:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(2,6,23,0.6)}
+.card .thumb{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  height:160px;
+}
+.card img{width:100%;height:100%;object-fit:contain;display:block;transition:transform .6s var(--easing)}
+.card:hover img{transform:scale(1.08)}
+.card .meta{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h4{margin:0;font-size:14px}
+.card p{margin:0;color:var(--muted);font-size:13px}
+.card .cta{display:flex;gap:8px;margin-top:auto}
+.small{
+  font-size:12px;color:var(--muted);
+}
+
+/* Badges */
+.badge{
+  position:absolute;top:10px;left:10px;padding:6px 8px;border-radius:8px;font-size:12px;font-weight:600;
+  backdrop-filter: blur(4px);
+}
+.badge.green{background:linear-gradient(90deg,#16a34a22,#16a34a11);color:var(--success);border:1px solid rgba(22,163,74,0.12)}
+.badge.red{background:linear-gradient(90deg,#ef444422,#ef444411);color:var(--danger);border:1px solid rgba(239,68,68,0.12)}
+
+/* Floating cart button */
+.floating{
+  position:fixed;right:20px;bottom:20px;background:linear-gradient(135deg,#06b6d4,#0ea5e9);
+  color:#012; width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 18px 40px rgba(2,6,23,0.6);z-index:80;border:4px solid rgba(255,255,255,0.06)
+}
+.floating .count{background:#012; color:#fff;padding:3px 7px;border-radius:999px;font-weight:700;margin-left:6px}
+
+/* Cart panel */
+.overlay{
+  position:fixed;inset:0;background:rgba(2,6,23,0.6);backdrop-filter: blur(3px);opacity:0;pointer-events:none;transition:opacity .18s;
+  z-index:70;
+}
+.overlay.show{opacity:1;pointer-events:auto}
+.cart-panel{
+  position:fixed;right:0;top:0;width:380px;height:100%;background:linear-gradient(180deg,#021024,#001121);box-shadow:-20px 0 40px rgba(2,6,23,0.6);
+  padding:18px;transform:translateX(110%);transition:transform .25s var(--easing);z-index:75;display:flex;flex-direction:column;gap:12px;
+}
+.cart-panel.show{transform:translateX(0)}
+.cart-items{overflow:auto;flex:1;padding-right:6px;display:flex;flex-direction:column;gap:10px}
+.cart-row{display:flex;gap:8px;align-items:center}
+.cart-row img{width:64px;height:64px;object-fit:contain;border-radius:8px;background:#081225}
+.qty-control{display:flex;gap:6px;align-items:center}
+.qty-control button{background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;padding:6px;border-radius:8px;cursor:pointer}
+
+/* Toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:#05202a;color:#cde;padding:10px 14px;border-radius:10px;box-shadow:0 8px 20px rgba(2,6,23,0.6);opacity:0;transition:opacity .2s;z-index:90}
+.toast.show{opacity:1}
+
+/* Admin modal */
+.admin-modal{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);
+  background:linear-gradient(180deg,#021026,#00111a);padding:18px;border-radius:14px;width:min(980px,96%);max-height:80vh;overflow:auto;
+  box-shadow:0 30px 60px rgba(2,6,23,0.7);z-index:100;opacity:0;pointer-events:none;transition:all .18s var(--easing)
+}
+.admin-modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.admin-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+
+/* Footer small */
+.footer{color:var(--muted);font-size:13px;margin-top:18px;text-align:center;padding-bottom:36px}
+
+/* Responsive tweaks */
+@media (max-width:780px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .cart-panel{width:100%;max-width:420px}
+  .searchbox{flex-basis:100%}
+  .toolbar{gap:8px}
+}
+</style>
 </head>
 <body>
-    <header>
-        <h1>🛒 Mi Tienda Online</h1>
-        <p>Productos seleccionados para ti</p>
-    </header>
 
-    <section class="productos" id="productos"></section>
+<div class="app" id="app">
 
-    <div id="carrito">
-        <h2>Carrito</h2>
-        <ul id="lista-carrito"></ul>
-        <p id="total">Total: $0.00</p>
-        <button class="btn-pagar" onclick="alert('Compra simulada. Conecta pasarela de pago.')">Pagar ahora</button>
+  <header class="header" role="banner">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">PC</div>
+      <div>
+        <div class="title">Tienda Coleccionables • V10</div>
+        <div class="small">Artículos de colección • cartas, figuras, promos</div>
+      </div>
     </div>
 
-    <script>
-        // Productos de ejemplo
-        const productos = [
-            { id: 1, nombre: "Camiseta básica", precio: 15.99 },
-            { id: 2, nombre: "Mochila ligera", precio: 29.99 },
-            { id: 3, nombre: "Libreta A5", precio: 8.50 },
-            { id: 4, nombre: "Taza cerámica", precio: 12.00 }
-        ];
+    <div class="controls">
+      <button class="btn" id="adminBtn" aria-haspopup="dialog">Admin</button>
+      <button class="btn" id="themeBtn" title="Cambiar tema (placeholder)">Tema</button>
+    </div>
+  </header>
 
-        let carrito = [];
+  <section class="toolbar" aria-label="Filtro y búsqueda">
+    <div class="searchbox" role="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35" stroke="#9aa4c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <input id="search" type="search" placeholder="Buscar por nombre, set o código..." aria-label="Buscar cartas">
+    </div>
 
-        function renderProductos() {
-            const contenedor = document.getElementById('productos');
-            contenedor.innerHTML = productos.map(p => `
-                <div class="producto">
-                    <h3>${p.nombre}</h3>
-                    <p class="precio">${p.precio.toFixed(2)}</p>
-                    <button onclick="agregarAlCarrito(${p.id})">Añadir al carrito</button>
-                </div>
-            `).join('');
-        }
+    <select id="setFilter" class="select" aria-label="Filtrar por set">
+      <option value="">Todos los sets</option>
+    </select>
 
-        function agregarAlCarrito(id) {
-            const producto = productos.find(p => p.id === id);
-            const existente = carrito.find(item => item.id === id);
-            if (existente) {
-                existente.cantidad++;
-            } else {
-                carrito.push({ ...producto, cantidad: 1 });
-            }
-            actualizarCarrito();
-        }
+    <select id="sort" class="select" aria-label="Ordenar">
+      <option value="relevance">Más relevantes</option>
+      <option value="qty_desc">Stock: alto → bajo</option>
+      <option value="qty_asc">Stock: bajo → alto</option>
+      <option value="name_asc">Nombre A → Z</option>
+      <option value="name_desc">Nombre Z → A</option>
+    </select>
+  </section>
 
-        function actualizarCarrito() {
-            const lista = document.getElementById('lista-carrito');
-            const totalEl = document.getElementById('total');
-            if (carrito.length === 0) {
-                lista.innerHTML = '<li>El carrito está vacío</li>';
-                totalEl.textContent = 'Total: $0.00';
-                return;
-            }
-            lista.innerHTML = carrito.map(item => `
-                <li>${item.nombre} x${item.cantidad} - ${(item.precio * item.cantidad).toFixed(2)}</li>
-            `).join('');
-            const total = carrito.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
-            totalEl.textContent = `Total: ${total.toFixed(2)}`;
-        }
+  <main>
+    <h2 id="title" class="small">Cargando inventario...</h2>
 
-        renderProductos();
-        actualizarCarrito();
-    </script>
+    <div id="grid" class="grid" role="list" aria-live="polite"></div>
+
+    <div id="empty" class="small" style="display:none;margin-top:18px;color:var(--muted)">No se encontraron artículos.</div>
+  </main>
+
+  <div class="footer">Hecho con ❤️ — Reemplaza TU_NUMERO en checkout y agrega tu API KEY si la API lo requiere.</div>
+</div>
+
+<!-- Floating cart -->
+<button class="floating" id="cartButton" aria-label="Abrir carrito">
+  🛒 <span class="count" id="cartCount">0</span>
+</button>
+
+<!-- Overlay & Cart panel -->
+<div class="overlay" id="overlay" tabindex="-1" aria-hidden="true"></div>
+<aside class="cart-panel" id="cartPanel" role="dialog" aria-label="Carrito de compras" aria-hidden="true">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <h3 style="margin:0">🛒 Tu carrito</h3>
+    <button class="btn" id="closeCart">Cerrar</button>
+  </div>
+  <div class="cart-items" id="cartItems" role="list"></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div class="small">Total items</div>
+      <div id="cartTotal" style="font-weight:700">0</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn" id="clearCart">Vaciar</button>
+      <button class="btn" id="checkoutBtn" style="background:linear-gradient(135deg,var(--accent),#0ea5e9)">Pagar / Enviar</button>
+    </div>
+  </div>
+</aside>
+
+<!-- Toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">Agregado al carrito</div>
+
+<!-- Admin modal -->
+<div class="admin-modal" id="adminModal" role="dialog" aria-label="Panel de administración" aria-hidden="true">
+  <div class="admin-header">
+    <h3 style="margin:0">Panel Admin</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="adminPass" type="password" placeholder="Contraseña admin" style="padding:8px;border-radius:10px;border:0;background:#041122;color:inherit">
+      <button class="btn" id="loginAdminConfirm">Entrar</button>
+      <button class="btn" id="closeAdmin">Cerrar</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+    <select id="adminSetSelect" class="select"><option value="">Selecciona un set</option></select>
+    <button class="btn" id="loadSetCards">Cargar cartas</button>
+    <button class="btn" id="exportInv">Exportar inventario</button>
+    <button class="btn" id="importInv">Importar inventario</button>
+    <input id="importFile" type="file" accept="application/json" style="display:none">
+  </div>
+
+  <div id="adminContent" class="admin-grid"></div>
+</div>
+
+<script>
+/* Config */
+const API_SETS = "https://api.pokemontcg.io/v2/sets";
+const API_SET_CARDS = "https://api.pokemontcg.io/v2/cards?q=set.id:";
+const API_HEADERS = {}; // si tienes x-api-key: {"X-Api-Key":"TU_API_KEY"}
+
+let inventory = JSON.parse(localStorage.getItem("inventory")||"{}"); // {id:{stock:true,qty:1}}
+let cardCache = JSON.parse(localStorage.getItem("cardCache")||"{}"); // id->{...}
+let cart = JSON.parse(localStorage.getItem("cart")||"[]"); // [{id, name, price, qty}]
+let setsData = [];
+let allItems = []; // flattened items for search/filter
+
+/* Utilities */
+const el = id => document.getElementById(id);
+const formatPrice = p => "$ " + p.toFixed(0);
+
+/* Toast */
+function showToast(msg, ms=1600){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), ms);
+}
+
+/* Debounce */
+function debounce(fn, wait=300){
+  let t;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), wait); };
+}
+
+/* Fetch wrapper with simple error handling */
+async function apiFetch(url){
+  try{
+    const res = await fetch(url, {headers:API_HEADERS});
+    if(!res.ok) throw new Error(res.statusText);
+    return await res.json();
+  }catch(e){
+    console.error("API fetch error:", e);
+    return null;
+  }
+}
+
+/* Init */
+document.addEventListener("DOMContentLoaded", async ()=> {
+  renderCart();
+  await loadSets();
+  await loadAllStock();
+  hookupUI();
+});
+
+/* UI hookups */
+function hookupUI(){
+  el("search").addEventListener("input", debounce(onSearch, 250));
+  el("setFilter").addEventListener("change", applyFilters);
+  el("sort").addEventListener("change", applyFilters);
+
+  el("cartButton").addEventListener("click", ()=>toggleCart(true));
+  el("closeCart").addEventListener("click", ()=>toggleCart(false));
+  el("overlay").addEventListener("click", ()=>{ toggleCart(false); closeAdmin(); });
+
+  el("clearCart").addEventListener("click", clearCart);
+  el("checkoutBtn").addEventListener("click", checkout);
+
+  // Admin UI
+  el("adminBtn").addEventListener("click", ()=>openAdmin());
+  el("closeAdmin").addEventListener("click", ()=>closeAdmin());
+  el("loginAdminConfirm").addEventListener("click", attemptAdminLogin);
+  el("loadSetCards").addEventListener("click", loadAdminSetCards);
+  el("exportInv").addEventListener("click", exportInventory);
+  el("importInv").addEventListener("click", ()=>el("importFile").click());
+  el("importFile").addEventListener("change", importInventoryFile);
+}
+
+/* CART FUNCs */
+function saveCart(){
+  localStorage.setItem("cart", JSON.stringify(cart));
+  renderCart();
+}
+function renderCart(){
+  el("cartCount").textContent = cart.reduce((s,i)=>s+i.qty,0);
+  el("cartTotal").textContent = cart.reduce((s,i)=>s+i.qty,0);
+  const container = el("cartItems");
+  container.innerHTML = "";
+  if(cart.length===0){
+    container.innerHTML = `<div class="small" style="color:var(--muted)">Tu carrito está vacío</div>`;
+    return;
+  }
+  cart.forEach(item=>{
+    const row = document.createElement("div");
+    row.className = "cart-row";
+    row.innerHTML = `
+      <img src="${item.img}" alt="${escapeHtml(item.name)}">
+      <div style="flex:1">
+        <div style="font-weight:700">${escapeHtml(item.name)}</div>
+        <div class="small">${item.set || ''}</div>
+        <div class="small" style="margin-top:6px">${formatPrice(item.price)}</div>
+      </div>
+      <div class="qty-control" aria-label="Control de cantidad">
+        <button data-id="${item.id}" class="dec">−</button>
+        <div style="min-width:28px;text-align:center">${item.qty}</div>
+        <button data-id="${item.id}" class="inc">+</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+
+  // event delegation for inc/dec
+  container.querySelectorAll(".inc").forEach(b=>{
+    b.addEventListener("click", ()=>{ changeCartQty(b.dataset.id, 1); });
+  });
+  container.querySelectorAll(".dec").forEach(b=>{
+    b.addEventListener("click", ()=>{ changeCartQty(b.dataset.id, -1); });
+  });
+
+}
+
+function changeCartQty(id, delta){
+  const idx = cart.findIndex(c=>c.id===id);
+  if(idx===-1) return;
+  cart[idx].qty += delta;
+  if(cart[idx].qty <= 0) cart.splice(idx,1);
+  saveCart();
+}
+
+function addToCartById(id){
+  const info = cardCache[id];
+  if(!info) { showToast("Artículo no disponible"); return; }
+
+  const price = info.price ?? (Math.max(3, Math.round(Math.random()*40))); // placeholder price
+  const idx = cart.findIndex(i=>i.id===id);
+  if(idx === -1){
+    cart.push({ id, name:info.name, img:info.img, set: info.set, price, qty:1 });
+  } else {
+    cart[idx].qty++;
+  }
+  saveCart();
+  showToast("Agregado al carrito");
+}
+
+/* Cart panel toggle */
+function toggleCart(open){
+  const overlay = el("overlay");
+  const panel = el("cartPanel");
+  if(open){
+    overlay.classList.add("show");
+    panel.classList.add("show");
+    panel.setAttribute("aria-hidden","false");
+  } else {
+    overlay.classList.remove("show");
+    panel.classList.remove("show");
+    panel.setAttribute("aria-hidden","true");
+  }
+}
+
+/* Checkout -> abre wa.me con mensaje */
+function checkout(){
+  if(cart.length===0){ showToast("El carrito está vacío"); return; }
+  let text = "Pedido:%0A";
+  cart.forEach(i=>{
+    text += `- ${encodeURIComponent(i.name)} x${i.qty}%0A`;
+  });
+  // Reemplaza TU_NUMERO por tu numero con codigo (ej: 573001112233)
+  const WA = "57TU_NUMERO";
+  window.open(`https://wa.me/${WA}?text=${text}`, "_blank");
+}
+
+/* Clear cart */
+function clearCart(){
+  if(!confirm("¿Vaciar carrito?")) return;
+  cart = [];
+  saveCart();
+}
+
+/* SEARCH / FILTERS */
+function onSearch(){
+  applyFilters();
+}
+
+function applyFilters(){
+  const q = el("search").value.trim().toLowerCase();
+  const setFilter = el("setFilter").value;
+  const sort = el("sort").value;
+
+  let items = allItems.slice();
+
+  if(setFilter) items = items.filter(i=>i.setId === setFilter);
+  if(q){
+    items = items.filter(i=>
+      (i.name && i.name.toLowerCase().includes(q)) ||
+      (i.set && i.set.toLowerCase().includes(q))
+    );
+  }
+
+  // sort
+  if(sort === "qty_desc") items.sort((a,b)=> (b.qty||0)-(a.qty||0));
+  else if(sort === "qty_asc") items.sort((a,b)=> (a.qty||0)-(b.qty||0));
+  else if(sort === "name_asc") items.sort((a,b)=> a.name.localeCompare(b.name));
+  else if(sort === "name_desc") items.sort((a,b)=> b.name.localeCompare(a.name));
+
+  renderItems(items);
+}
+
+/* LOAD sets list */
+async function loadSets(){
+  const json = await apiFetch(API_SETS);
+  if(!json) return;
+  setsData = json.data || [];
+  const sel = el("setFilter");
+  const adminSel = el("adminSetSelect");
+  setsData.forEach(s=>{
+    const o = document.createElement("option");
+    o.value = s.id; o.textContent = s.name;
+    sel.appendChild(o);
+
+    const o2 = o.cloneNode(true);
+    adminSel.appendChild(o2);
+  });
+}
+
+/* LOAD full stock from inventory -> uses cardCache and inventory */
+async function loadAllStock(){
+  el("title").textContent = "Cargando cartas en stock...";
+  const ids = Object.keys(inventory).filter(id => inventory[id].stock);
+  if(ids.length === 0){
+    el("grid").innerHTML = `<div style="grid-column:1/-1;padding:26px;border-radius:12px;background:var(--glass);text-align:center;color:var(--muted)">No hay stock. Ve al panel admin para marcar cartas.</div>`;
+    el("empty").style.display = "none";
+    allItems = [];
+    return;
+  }
+
+  // Que id's no estan en cache
+  const missing = ids.filter(id => !cardCache[id]);
+  if(missing.length > 0){
+    // api allows OR queries: id:a OR id:b
+    const query = missing.map(id => `id:${id}`).join(" OR ");
+    const json = await apiFetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}`);
+    if(json && json.data){
+      json.data.forEach(c=>{
+        cardCache[c.id] = {
+          id: c.id,
+          name: c.name,
+          img: c.images?.small || c.images?.large || "",
+          set: c.set?.name || "",
+          setId: c.set?.id || "",
+          logo: c.set?.images?.logo || "",
+        };
+      });
+      localStorage.setItem("cardCache", JSON.stringify(cardCache));
+    }
+  }
+
+  // build grouped and flattened list
+  const grouped = {};
+  allItems = [];
+  ids.forEach(id=>{
+    const data = cardCache[id] || { id, name: "Desconocido", img:"", set:"", setId:"" };
+    const inv = inventory[id] || {stock:false, qty:1};
+    const item = {
+      id: data.id,
+      name: data.name,
+      img: data.img,
+      set: data.set,
+      setId: data.setId,
+      qty: inv.qty || 1
+    };
+    if(!grouped[item.set]) grouped[item.set]=[];
+    grouped[item.set].push(item);
+    allItems.push(item);
+  });
+
+  // render initial view
+  applyFilters();
+}
+
+/* Render array of items (cards) */
+function renderItems(items){
+  const grid = el("grid");
+  grid.innerHTML = "";
+  if(!items || items.length === 0){
+    el("empty").style.display = "block";
+    return;
+  } else el("empty").style.display = "none";
+
+  items.forEach(it=>{
+    const card = document.createElement("article");
+    card.className = "card";
+    card.setAttribute("role","listitem");
+    const badgeClass = (it.qty <= 2) ? "badge red" : "badge green";
+    card.innerHTML = `
+      <div class="${badgeClass}" aria-hidden="true">${it.qty <= 2 ? "Últimas" : "Disponible"}</div>
+      <div class="thumb"><img loading="lazy" src="${it.img}" alt="${escapeHtml(it.name)}"></div>
+      <div class="meta">
+        <h4 title="${escapeHtml(it.name)}">${escapeHtml(it.name)}</h4>
+        <div class="small">${escapeHtml(it.set)}</div>
+      </div>
+      <p class="small">Stock: ${it.qty}</p>
+      <div class="cta">
+        <button class="select" data-id="${it.id}" aria-label="Agregar ${escapeHtml(it.name)}">Agregar</button>
+        <button class="select" onclick="openDetails('${it.id}')">Ver</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // attach add listeners
+  grid.querySelectorAll("button[data-id]").forEach(b=>{
+    b.addEventListener("click", ()=>addToCartById(b.dataset.id));
+  });
+}
+
+/* Escape helper for simple text injection safety */
+function escapeHtml(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* Admin flows */
+function openAdmin(){
+  el("adminModal").classList.add("show");
+  el("adminModal").setAttribute("aria-hidden","false");
+  el("adminPass").focus();
+}
+function closeAdmin(){
+  el("adminModal").classList.remove("show");
+  el("adminModal").setAttribute("aria-hidden","true");
+}
+
+/* Very simple admin auth (demo) */
+function attemptAdminLogin(){
+  const pass = el("adminPass").value || "";
+  if(pass === "1234"){ // cambiar por un flujo real en producción
+    showToast("Acceso admin concedido");
+    loadAdminSets();
+  } else {
+    alert("Contraseña incorrecta");
+  }
+}
+
+async function loadAdminSets(){
+  // muestra sets ya cargados en select; nada más en demo
+  showToast("Selecciona un set y carga cartas");
+}
+
+async function loadAdminSetCards(){
+  const setId = el("adminSetSelect").value;
+  if(!setId){ alert("Elige un set"); return; }
+  el("adminContent").innerHTML = `<div style="grid-column:1/-1;color:var(--muted)">Cargando cartas...</div>`;
+  const json = await apiFetch(API_SET_CARDS + encodeURIComponent(setId));
+  if(!json){ el("adminContent").innerHTML = `<div style="grid-column:1/-1;color:var(--muted)">Error al cargar</div>`; return; }
+
+  const data = json.data || [];
+  // render cards with controls
+  el("adminContent").innerHTML = "";
+  data.forEach(c=>{
+    const id = c.id;
+    const inv = inventory[id] || {stock:false, qty:1};
+    const card = document.createElement("div");
+    card.style.background = "linear-gradient(180deg,#021025,#00121a)";
+    card.style.padding = "10px";
+    card.style.borderRadius = "10px";
+    card.innerHTML = `
+      <img src="${c.images?.small||''}" alt="${escapeHtml(c.name)}" style="width:100%;border-radius:8px;background:#071224;margin-bottom:8px">
+      <div style="font-weight:700">${escapeHtml(c.name)}</div>
+      <div class="small" style="margin-bottom:6px">${escapeHtml(c.set?.name || '')}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-id="${id}" ${inv.stock? 'checked':''}> Stock</label>
+        <input type="number" data-id-qty="${id}" value="${inv.qty||1}" min="1" style="width:70px;padding:6px;border-radius:8px;background:#041225;border:0;color:inherit">
+      </div>
+    `;
+    el("adminContent").appendChild(card);
+  });
+
+  // hookup admin controls
+  el("adminContent").querySelectorAll("input[type='checkbox']").forEach(cb=>{
+    cb.addEventListener("change", (e)=>{
+      const id = e.target.dataset.id;
+      if(!inventory[id]) inventory[id] = {stock:false, qty:1};
+      inventory[id].stock = e.target.checked;
+      saveInventory();
+    });
+  });
+  el("adminContent").querySelectorAll("input[type='number']").forEach(n=>{
+    n.addEventListener("change", (e)=>{
+      const id = e.target.dataset.idQty || e.target.getAttribute("data-id-qty");
+      const v = parseInt(e.target.value) || 1;
+      if(!inventory[id]) inventory[id] = {stock:true, qty:1};
+      inventory[id].qty = v;
+      saveInventory();
+    });
+  });
+
+  showToast(`Cargadas ${data.length} cartas (admin)`);
+}
+
+/* Export / Import inventory */
+function exportInventory(){
+  const data = JSON.stringify(inventory, null, 2);
+  const blob = new Blob([data],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "inventory.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importInventoryFile(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const obj = JSON.parse(reader.result);
+      inventory = obj;
+      saveInventory();
+      loadAllStock();
+      showToast("Inventario importado");
+    }catch(err){ alert("Archivo inválido"); }
+  };
+  reader.readAsText(f);
+}
+
+/* Inventory persistence */
+function saveInventory(){
+  localStorage.setItem("inventory", JSON.stringify(inventory));
+  loadAllStock();
+}
+
+/* Small details view placeholder */
+function openDetails(id){
+  const info = cardCache[id];
+  const msg = info ? `${info.name}\nSet: ${info.set}` : "Detalle no disponible";
+  alert(msg);
+}
+
+/* Initial admin set load helper (populates adminSetSelect) */
+(async function prefetchSets(){
+  const json = await apiFetch(API_SETS);
+  if(!json) return;
+  setsData = json.data || [];
+  const sel = el("adminSetSelect");
+  setsData.forEach(s=>{ const o=document.createElement("option"); o.value=s.id; o.textContent=s.name; sel.appendChild(o); });
+})();
+
+/* On-demand: load card info into cache when viewing set as admin or similar */
+window.addEventListener("beforeunload", ()=>{ localStorage.setItem("cardCache", JSON.stringify(cardCache)); });
+
+</script>
+
 </body>
 </html>
-
-
-
-Type your message...
-📺 Watch Ad to Send
-+3 messages unlocked! 🎉
