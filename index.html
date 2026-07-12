@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="es">
 <head>
@@ -125,6 +126,17 @@ body{
 .small{
   font-size:12px;color:var(--muted);
 }
+
+/* Divider card for sets (full width) */
+.card.divider{
+  grid-column: 1 / -1;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  justify-content:flex-start;
+}
+.card.divider img{width:56px;height:56px;object-fit:contain;border-radius:8px;background:transparent}
 
 /* Badges */
 .badge{
@@ -347,7 +359,7 @@ let inventory = JSON.parse(localStorage.getItem("inventory")||"{}"); // {id:{sto
 let cardCache = JSON.parse(localStorage.getItem("cardCache")||"{}"); // id->{...}
 let cart = JSON.parse(localStorage.getItem("cart")||"[]"); // [{id, name, price, qty}]
 let setsData = [];
-let allItems = []; // flattened items for search/filter
+let allItems = []; // flattened items for search/filter (non-pokemon + pokemon entries summary)
 let activeTab = "pokemon";
 
 /* Utilities */
@@ -386,7 +398,7 @@ document.addEventListener("DOMContentLoaded", async ()=> {
   hookupTabs();
   hookupUI();
   await loadSets();
-  await loadAllStock();
+  await loadAllStock(); // builds allItems for non-pokemon items and caches
 });
 
 /* Tab handling */
@@ -485,7 +497,7 @@ function addToCartById(id){
   const price = Number(inventory[id]?.price ?? cardCache[id]?.price ?? info.price ?? (Math.max(3, Math.round(Math.random()*40))));
   const idx = cart.findIndex(i=>i.id===id);
   if(idx === -1){
-    cart.push({ id, name: info.name || inventory[id].name, img: inventory[id]?.img || cardCache[id]?.img || '', category: inventory[id]?.category || (cardCache[id] ? 'pokemon' : ''), price, qty:1 });
+    cart.push({ id, name: info.name || inventory[id]?.name, img: inventory[id]?.img || cardCache[id]?.img || '', category: inventory[id]?.category || (cardCache[id] ? 'pokemon' : ''), price, qty:1 });
   } else {
     cart[idx].qty++;
   }
@@ -537,15 +549,15 @@ function applyFilters(){
   const setFilter = el("setFilter").value;
   const sort = el("sort").value;
 
-  let items = allItems.slice();
-
-  // filter by active tab category
+  // If user is in Pokémon tab, render the Pokémon catalog (grouped by set) like the original version
   if(activeTab === "pokemon"){
-    items = items.filter(i => (i.category || 'pokemon') === 'pokemon');
-    if(setFilter) items = items.filter(i => i.setId === setFilter);
-  } else {
-    items = items.filter(i => (i.category || '') === activeTab);
+    renderPokemonCatalog({ q, setFilter, sort });
+    return;
   }
+
+  // Otherwise render custom / non-pokemon items from allItems
+  let items = allItems.slice();
+  items = items.filter(i => (i.category || '') === activeTab);
 
   if(q){
     items = items.filter(i=>
@@ -581,7 +593,7 @@ async function loadSets(){
   });
 }
 
-/* LOAD full stock from inventory -> uses cardCache and inventory */
+/* LOAD full stock from inventory -> builds allItems (non-pokemon & pokemon summaries) */
 async function loadAllStock(){
   el("title").textContent = "Cargando artículos en stock...";
   const ids = Object.keys(inventory);
@@ -596,7 +608,7 @@ async function loadAllStock(){
   // For any inventory entries that reference a pokemon card id and lack cache, fetch
   const missingCardIds = ids.filter(id => {
     const inv = inventory[id];
-    return inv && inv.category === 'pokemon' && !cardCache[id];
+    return inv && (inv.category === 'pokemon' || !inv.category) && !cardCache[id];
   });
 
   if(missingCardIds.length > 0){
@@ -622,7 +634,7 @@ async function loadAllStock(){
   ids.forEach(id=>{
     const inv = inventory[id];
     if(!inv) return;
-    const category = inv.category || 'pokemon';
+    const category = inv.category || (cardCache[id] ? 'pokemon' : 'accesorios');
     let item = {
       id,
       name: inv.name || (cardCache[id] && cardCache[id].name) || "Sin nombre",
@@ -638,10 +650,147 @@ async function loadAllStock(){
     allItems.push(item);
   });
 
-  applyFilters();
+  // If currently in pokemon tab, render pokemon catalog; otherwise apply filters for current tab
+  if(activeTab === 'pokemon') {
+    renderPokemonCatalog({ q: el("search").value.trim().toLowerCase(), setFilter: el("setFilter").value, sort: el("sort").value });
+  } else {
+    applyFilters();
+  }
 }
 
-/* Render array of items (cards) */
+/* RENDER: Pokémon catalog (restore original grouped / divider behavior) */
+async function renderPokemonCatalog({ q = "", setFilter = "", sort = "relevance" } = {}) {
+  el("title").textContent = "Cartas Pokémon disponibles";
+
+  // choose ids that are marked in inventory as stock and are category 'pokemon' (or have no category but cache exists)
+  const ids = Object.keys(inventory).filter(id => {
+    const inv = inventory[id];
+    const cat = inv.category || (cardCache[id] ? 'pokemon' : null);
+    return (cat === 'pokemon') && inv.stock;
+  });
+
+  const grid = el("grid");
+  grid.innerHTML = "";
+
+  if(ids.length === 0){
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:26px;border-radius:12px;background:var(--glass);text-align:center;color:var(--muted)">No hay cartas Pokémon en stock. Ve al panel admin para marcar cartas.</div>`;
+    el("empty").style.display = "none";
+    return;
+  }
+
+  // Fetch any missing cards from API
+  const missing = ids.filter(id => !cardCache[id]);
+  if(missing.length > 0){
+    const query = missing.map(id => `id:${id}`).join(" OR ");
+    const json = await apiFetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}`);
+    if(json && json.data){
+      json.data.forEach(c=>{
+        cardCache[c.id] = {
+          id: c.id,
+          name: c.name,
+          img: c.images?.small || c.images?.large || "",
+          set: c.set?.name || "",
+          setId: c.set?.id || "",
+          logo: c.set?.images?.logo || "",
+        };
+      });
+      localStorage.setItem("cardCache", JSON.stringify(cardCache));
+    }
+  }
+
+  // build grouped object by set name (respecting setFilter & q)
+  const grouped = {};
+  const allCardsList = [];
+
+  ids.forEach(id=>{
+    const data = cardCache[id] || { id, name: "Desconocido", img:"", set:"", setId:"" };
+    const inv = inventory[id] || {stock:false, qty:1};
+
+    const item = {
+      id: data.id,
+      name: data.name,
+      img: data.img,
+      qty: inv.qty || 0,
+      set: data.set || inv.set || "Sin set",
+      setId: data.setId || inv.setId || "",
+      logo: data.logo || inv.logo || ""
+    };
+
+    // apply search q and setFilter early
+    const matchesQ = !q || item.name.toLowerCase().includes(q) || (item.set && item.set.toLowerCase().includes(q));
+    const matchesSet = !setFilter || item.setId === setFilter;
+    if(!matchesQ || !matchesSet) return;
+
+    if(!grouped[item.set]) grouped[item.set] = { setId: item.setId, logo: item.logo, cards: [] };
+    grouped[item.set].cards.push(item);
+    allCardsList.push(item);
+  });
+
+  // Sort sets alphabetically
+  const setNames = Object.keys(grouped).sort((a,b)=> a.localeCompare(b));
+
+  // Optionally sort cards inside each set based on sort
+  setNames.forEach(setName=>{
+    const arr = grouped[setName].cards;
+    if(sort === "qty_desc") arr.sort((a,b)=> (b.qty||0)-(a.qty||0));
+    else if(sort === "qty_asc") arr.sort((a,b)=> (a.qty||0)-(b.qty||0));
+    else if(sort === "name_asc") arr.sort((a,b)=> a.name.localeCompare(b.name));
+    else if(sort === "name_desc") arr.sort((a,b)=> b.name.localeCompare(a.name));
+    else arr.sort((a,b)=> a.name.localeCompare(b.name)); // default
+  });
+
+  if(allCardsList.length === 0){
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:26px;border-radius:12px;background:var(--glass);text-align:center;color:var(--muted)">No se encontraron cartas que coincidan con la búsqueda.</div>`;
+    return;
+  }
+
+  // Render grouped sets with divider and cards
+  setNames.forEach(setName=>{
+    const group = grouped[setName];
+    const firstLogo = group.logo || "";
+    // divider card (full width)
+    const dividerHtml = `
+      <div class="card divider">
+        <img src="${firstLogo}" alt="${escapeHtml(setName)} logo" onerror="this.style.display='none'">
+        <div>
+          <div style="font-weight:700">${escapeHtml(setName)}</div>
+          <div class="small">Set</div>
+        </div>
+      </div>
+    `;
+    grid.innerHTML += dividerHtml;
+
+    group.cards.forEach(c=>{
+      const badge =
+        c.qty <= 2
+          ? `<div class="badge red">Últimas</div>`
+          : `<div class="badge green">Disponible</div>`;
+
+      grid.innerHTML += `
+        <div class="card">
+          ${badge}
+          <div class="thumb"><img loading="lazy" src="${c.img}" alt="${escapeHtml(c.name)}"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700">${escapeHtml(c.name)}</div>
+            <div class="small">${c.qty} pz</div>
+          </div>
+          <div class="small" style="margin-top:6px">${escapeHtml(c.set)}</div>
+          <div class="cta">
+            <button class="select" data-id="${c.id}" aria-label="Agregar ${escapeHtml(c.name)}">Agregar</button>
+            <button class="select" onclick="openDetails('${c.id}')">Ver</button>
+          </div>
+        </div>
+      `;
+    });
+  });
+
+  // attach add listeners for all buttons generated
+  grid.querySelectorAll("button.select[data-id]").forEach(b=>{
+    b.addEventListener("click", ()=>addToCartById(b.dataset.id));
+  });
+}
+
+/* Render array of non-pokemon items (cards) */
 function renderItems(items){
   const grid = el("grid");
   grid.innerHTML = "";
@@ -967,3 +1116,4 @@ window.addEventListener("beforeunload", ()=>{ localStorage.setItem("cardCache", 
 
 </body>
 </html>
+```
